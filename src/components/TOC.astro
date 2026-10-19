@@ -1,0 +1,118 @@
+---
+import { t } from '@utils/i18n';
+import type { MarkdownHeading } from 'astro';
+
+interface Props {
+  headings: MarkdownHeading[];
+  lang?: string;
+}
+
+const { headings, lang = 'en' } = Astro.props;
+
+// TOC is part of the post content zone: it follows the post language,
+// never the site chrome language.
+const dir = lang === 'fa' ? 'rtl' : 'ltr';
+
+// Only render h2 and h3
+const tocHeadings = headings.filter((h) => h.depth === 2 || h.depth === 3);
+if (tocHeadings.length === 0) return;
+---
+
+<nav
+  aria-label={t(lang, 'toc')}
+  lang={lang}
+  dir={dir}
+  class="toc sticky top-20"
+  style="font-size: 0.8rem; max-height: calc(100vh - 6rem); overflow-y: auto;"
+>
+  <p
+    class="mb-2 font-semibold tracking-wide uppercase"
+    style="font-size: 0.7rem; color: var(--global-text-color-light);"
+  >
+    {t(lang, 'toc')}
+  </p>
+  <ul class="space-y-1" style="list-style: none; padding: 0; margin: 0;">
+    {
+      tocHeadings.map((h) => (
+        <li style={h.depth === 3 ? 'padding-inline-start: 0.75rem;' : ''}>
+          <a
+            href={`#${h.slug}`}
+            class="toc-link block py-0.5 transition-colors"
+            style="color: var(--global-text-color-light); text-decoration: none; line-height: 1.4;"
+          >
+            {h.slug === 'footnote-label' ? t(lang, 'footnotes') : h.text}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<script>
+  // Highlight the active heading as the user scrolls.
+  //
+  // This must be re-runnable: with View Transitions enabled, the module script
+  // runs only once, so the observer would keep watching the *old* page's
+  // headings after a client-side navigation. We therefore wrap the setup in a
+  // function, tear down the previous observer, and wire it to `astro:page-load`
+  // (which fires on the initial load and again after every swap).
+  let disconnectToc: (() => void) | undefined;
+
+  function initToc() {
+    disconnectToc?.();
+
+    const nav = document.querySelector<HTMLElement>('.toc');
+    const links = Array.from(nav?.querySelectorAll<HTMLAnchorElement>('.toc-link') ?? []);
+    if (links.length === 0) return;
+
+    function setActive(id: string) {
+      links.forEach((l) => {
+        const isActive = l.getAttribute('href') === `#${id}`;
+        l.style.color = isActive ? 'var(--global-theme-color)' : 'var(--global-text-color-light)';
+        l.style.fontWeight = isActive ? '600' : '400';
+      });
+    }
+
+    const navbarHeight =
+      parseInt(getComputedStyle(document.documentElement).getPropertyValue('--navbar-height')) ||
+      57;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActive(entry.target.id);
+            break;
+          }
+        }
+      },
+      { rootMargin: `-${navbarHeight}px 0px -80% 0px`, threshold: 0 },
+    );
+
+    links.forEach((link) => {
+      const id = link.getAttribute('href')?.slice(1);
+      if (!id) return;
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    disconnectToc = () => observer.disconnect();
+  }
+
+  // Init immediately (module scripts are deferred, so the DOM is ready) and
+  // again after each View Transition navigation.
+  initToc();
+  document.addEventListener('astro:page-load', initToc);
+</script>
+
+<style>
+  /* Own alignment so the TOC does not inherit the page-direction alignment
+     from .page-container when the chrome language differs from the post. */
+  .toc {
+    text-align: start;
+  }
+
+  .toc-link:hover {
+    color: var(--global-theme-color) !important;
+  }
+</style>

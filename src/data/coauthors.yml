@@ -1,0 +1,10 @@
+# Co-author profile links used by the publications page.
+# Keys are last names (or full names); values support:
+#   url      — personal website or profile URL
+#   scholar  — Google Scholar user ID
+#   orcid    — ORCID iD
+#
+# Example:
+#   Hinton:
+#     url: https://www.cs.toronto.edu/~hinton/
+#     scholar: JicYPdAAAAAJ

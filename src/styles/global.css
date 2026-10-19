@@ -1,0 +1,2356 @@
+@import 'tailwindcss';
+@import './_colors.css';
+@import './_typography.css';
+/* KaTeX math CSS — bundled locally so it's always available (no CDN dependency) */
+@import 'katex/dist/katex.min.css';
+
+/* ─── Self-hosted fonts — Manrope (Latin), Space Grotesk (Latin display), Vazirmatn (Persian), JetBrains Mono (code) ── */
+/* font-display: fallback = 100ms block period, then 3s swap window. */
+
+/* Manrope 400 */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 400;
+  src: url('@fontsource/manrope/files/manrope-latin-400-normal.woff2') format('woff2');
+}
+/* Manrope 500 */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 500;
+  src: url('@fontsource/manrope/files/manrope-latin-500-normal.woff2') format('woff2');
+}
+/* Manrope 600 */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 600;
+  src: url('@fontsource/manrope/files/manrope-latin-600-normal.woff2') format('woff2');
+}
+/* Manrope 700 */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 700;
+  src: url('@fontsource/manrope/files/manrope-latin-700-normal.woff2') format('woff2');
+}
+/* Manrope 800 */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 800;
+  src: url('@fontsource/manrope/files/manrope-latin-800-normal.woff2') format('woff2');
+}
+/* Space Grotesk 500 */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 500;
+  src: url('@fontsource/space-grotesk/files/space-grotesk-latin-500-normal.woff2') format('woff2');
+}
+/* Space Grotesk 600 */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 600;
+  src: url('@fontsource/space-grotesk/files/space-grotesk-latin-600-normal.woff2') format('woff2');
+}
+/* Space Grotesk 700 */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 700;
+  src: url('@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2') format('woff2');
+}
+/* Vazirmatn 400 (Arabic subset covers Persian) */
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 400;
+  src: url('@fontsource/vazirmatn/files/vazirmatn-arabic-400-normal.woff2') format('woff2');
+}
+/* Vazirmatn 500 */
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 500;
+  src: url('@fontsource/vazirmatn/files/vazirmatn-arabic-500-normal.woff2') format('woff2');
+}
+/* Vazirmatn 700 */
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 700;
+  src: url('@fontsource/vazirmatn/files/vazirmatn-arabic-700-normal.woff2') format('woff2');
+}
+/* JetBrains Mono 400 */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 400;
+  src: url('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2') format('woff2');
+}
+/* JetBrains Mono 600 */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: fallback;
+  font-weight: 600;
+  src: url('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-600-normal.woff2') format('woff2');
+}
+
+/* Configure dark: variant to use data-theme attribute (matches Base.astro) */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* ─── Breadcrumb navigation (shared by blog posts, projects, publications) ── */
+
+.breadcrumb-nav {
+  margin-bottom: 1.25rem;
+}
+
+.breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--global-theme-color);
+  text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+  opacity: 0.75;
+}
+
+/* ─── Layout utilities ───────────────────────────────────────────────────── */
+
+@layer utilities {
+  /**
+   * .page-container — max-width wrapper matching al-folio's 930px container.
+   * Use on all top-level page sections.
+   */
+  .page-container {
+    width: 100%;
+    max-width: 930px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Scrollable list (news, latest posts) */
+  .scrollable-list {
+    max-height: 280px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--global-divider-color) transparent;
+  }
+
+  /* ─── MDB z-depth shadow system (all 5 levels, matches al-folio) ─── */
+  .z-depth-0 {
+    box-shadow: none !important;
+  }
+  .z-depth-1 {
+    box-shadow:
+      0 2px 2px 0 rgba(0, 0, 0, 0.14),
+      0 3px 1px -2px rgba(0, 0, 0, 0.12),
+      0 1px 5px 0 rgba(0, 0, 0, 0.2);
+  }
+  .z-depth-1-half {
+    box-shadow:
+      0 3px 3px 0 rgba(0, 0, 0, 0.14),
+      0 1px 7px 0 rgba(0, 0, 0, 0.12),
+      0 3px 1px -1px rgba(0, 0, 0, 0.2);
+  }
+  .z-depth-2 {
+    box-shadow:
+      0 4px 5px 0 rgba(0, 0, 0, 0.14),
+      0 1px 10px 0 rgba(0, 0, 0, 0.12),
+      0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  }
+  .z-depth-3 {
+    box-shadow:
+      0 8px 17px 2px rgba(0, 0, 0, 0.14),
+      0 3px 14px 2px rgba(0, 0, 0, 0.12),
+      0 5px 5px -3px rgba(0, 0, 0, 0.2);
+  }
+  .z-depth-4 {
+    box-shadow:
+      0 16px 24px 2px rgba(0, 0, 0, 0.14),
+      0 6px 30px 5px rgba(0, 0, 0, 0.12),
+      0 8px 10px -7px rgba(0, 0, 0, 0.3);
+  }
+  .z-depth-5 {
+    box-shadow:
+      0 24px 38px 3px rgba(0, 0, 0, 0.14),
+      0 9px 46px 8px rgba(0, 0, 0, 0.12),
+      0 11px 15px -7px rgba(0, 0, 0, 0.4);
+  }
+
+  /* ─── Bootstrap-compat image utilities ─────────────────────────── */
+  .img-fluid {
+    max-width: 100%;
+    height: auto;
+  }
+  .rounded {
+    border-radius: 0.25rem !important;
+  }
+  .rounded-circle {
+    border-radius: 50% !important;
+  }
+  .float-right {
+    float: right;
+  }
+  .float-left {
+    float: left;
+  }
+
+  /* ─── Figure caption (matches al-folio .caption) ────────────────── */
+  .caption {
+    font-size: 0.875rem;
+    margin-top: 0.75rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    color: var(--global-text-color-light);
+  }
+
+  /* ─── Bootstrap-compat grid (used in MDX content) ───────────────── */
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -0.75rem;
+    margin-left: -0.75rem;
+  }
+  .row.g-0 {
+    margin-right: 0;
+    margin-left: 0;
+  }
+  .row.g-0 > * {
+    padding-right: 0;
+    padding-left: 0;
+  }
+  .col-sm,
+  .col {
+    flex: 1 0 0%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+    min-width: 0;
+  }
+  .col-sm-3 {
+    flex: 0 0 auto;
+    width: 25%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .col-sm-4 {
+    flex: 0 0 auto;
+    width: 33.333%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .col-sm-6 {
+    flex: 0 0 auto;
+    width: 50%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .col-sm-8 {
+    flex: 0 0 auto;
+    width: 66.667%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .col-sm-9 {
+    flex: 0 0 auto;
+    width: 75%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .col-sm-12,
+  .col-md-12 {
+    flex: 0 0 auto;
+    width: 100%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .justify-content-sm-center {
+    justify-content: center;
+  }
+  .mt-3 {
+    margin-top: 1rem !important;
+  }
+  .mt-md-0 {
+    margin-top: 0 !important;
+  }
+  .mb-4 {
+    margin-bottom: 1.5rem !important;
+  }
+  .ml-auto {
+    margin-left: auto;
+  }
+  .mr-auto {
+    margin-right: auto;
+  }
+  /* Column images fill their container */
+  .col-sm img,
+  .col img,
+  .col-sm-3 img,
+  .col-sm-4 img,
+  .col-sm-6 img,
+  .col-sm-8 img,
+  .col-sm-9 img,
+  .col-md-12 img {
+    width: 100%;
+    height: auto;
+  }
+
+  /* ─── Icon inline override (Tailwind v4 resets svg to display:block) */
+  .post-tags svg,
+  .post-meta svg,
+  .post-list svg,
+  .tag-category-list svg,
+  .featured-posts svg,
+  .pagination-btn svg {
+    display: inline !important;
+    vertical-align: -0.125em;
+    width: 0.875em;
+    height: 0.875em;
+  }
+
+  /* ─── Blog-specific classes (matches al-folio) ───────────────────── */
+  .header-bar {
+    border-bottom: 1px solid var(--global-divider-color);
+    text-align: center;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+  }
+  .header-bar h1 {
+    color: var(--global-theme-color);
+    font-size: 5rem;
+    font-family: var(--font-sans);
+    font-weight: 700;
+  }
+  .header-bar h2 {
+    color: var(--global-text-color-light);
+    font-size: 1.25rem;
+  }
+  .tag-category-list {
+    border-bottom: 1px solid var(--global-divider-color);
+    text-align: center;
+    padding-top: 1rem;
+    padding-bottom: 0.5rem;
+  }
+  .tag-category-list ul {
+    justify-content: center;
+    display: flow-root;
+    padding: 0;
+    margin: 0;
+  }
+  .tag-category-list ul li,
+  .tag-category-list ul p {
+    list-style: none;
+    display: inline-block;
+    padding: 0.5rem 0.5rem;
+    color: var(--global-text-color-light);
+  }
+  .tag-category-list ul li a {
+    color: var(--global-text-color-light);
+    text-decoration: none;
+  }
+  .tag-category-list ul li a:hover {
+    color: var(--global-theme-color);
+  }
+  .post-list {
+    margin: 0;
+    margin-bottom: 40px;
+    padding: 0;
+  }
+  .post-list li {
+    border-bottom: 1px solid var(--global-divider-color);
+    list-style: none;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+  .post-list .post-meta {
+    color: var(--global-text-color-light);
+    font-size: 0.875rem;
+    margin-bottom: 0;
+  }
+  .post-list .post-tags {
+    color: var(--global-text-color-light);
+    font-size: 0.875rem;
+    padding-top: 0.25rem;
+  }
+  .post-list .post-tags a {
+    color: var(--global-text-color-light);
+    text-decoration: none;
+  }
+  .post-list .post-tags a:hover {
+    color: var(--global-theme-color);
+  }
+  .post-list li a.post-title {
+    color: var(--global-text-color);
+    text-decoration: none;
+    font-weight: 700;
+  }
+  .post-list li a.post-title:hover {
+    color: var(--global-theme-color);
+  }
+  h2.year {
+    color: var(--global-divider-color);
+    padding-top: 1rem;
+    margin-top: 2rem;
+    margin-bottom: 0;
+    text-align: right;
+    font-family: var(--font-sans);
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  /* ─── Shared page-level heading (used on publications, cv, teaching, etc.) ── */
+  .post-header {
+    margin-bottom: 1.5rem;
+  }
+  h1.post-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--global-text-color);
+    font-family: var(--font-sans);
+  }
+
+  /* ─── Profile (lab logo — centered, not floated) ─────────────────────── */
+  .profile {
+    width: min(240px, 80%);
+    float: none !important;
+    margin: 0 auto 1.5rem !important;
+    text-align: center;
+  }
+  .profile img {
+    margin-inline: auto;
+  }
+  .profile .more-info {
+    margin-bottom: 5px;
+    margin-top: 5px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .profile .more-info p {
+    display: inline-block;
+    margin: 0;
+  }
+  .profile.float-right,
+  .profile.float-left {
+    margin-inline: 0;
+  }
+  @media (min-width: 576px) {
+    .profile .more-info p {
+      display: block;
+    }
+  }
+
+  /* ─── Social icons (matches al-folio .social) ───────────────────── */
+  .social {
+    text-align: center;
+  }
+  .social .contact-icons {
+    font-size: 2.8rem;
+  }
+  .social .contact-icons a {
+    color: var(--global-text-color);
+    text-decoration: none;
+    transition: color 0.2s ease-in-out;
+  }
+  .social .contact-icons a:hover {
+    color: var(--global-theme-color);
+    text-decoration: none;
+  }
+  .social .contact-note {
+    font-size: 0.8rem;
+    color: var(--global-text-color-light);
+  }
+
+  /* ─── Post detail (matches al-folio .post) ───────────────────────── */
+  .post .post-meta {
+    color: var(--global-text-color-light);
+    font-size: 0.875rem;
+    margin-bottom: 0;
+  }
+  .post .post-tags {
+    color: var(--global-text-color-light);
+    font-size: 0.875rem;
+    padding-top: 0.25rem;
+    padding-bottom: 1rem;
+  }
+  .post .post-tags a {
+    color: var(--global-text-color-light);
+    text-decoration: none;
+  }
+  .post .post-tags a:hover {
+    color: var(--global-theme-color);
+  }
+  .post-description {
+    margin-bottom: 2rem;
+    font-size: 0.875rem;
+  }
+  .post-description a {
+    color: inherit;
+  }
+  .post-description a:hover {
+    color: var(--global-theme-color);
+    text-decoration: none;
+  }
+
+  /* ─── Abbr labels ────────────────────────────────────────────────── */
+  .badge-abbr {
+    display: inline-block;
+    padding: 0.15em 0.5em;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    background-color: var(--global-theme-color);
+    color: var(--global-hover-text-color);
+  }
+
+  /* ─── Bootstrap grid additions (col-sm-2, col-sm-10, row-cols) ───── */
+  .col-sm-2 {
+    flex: 0 0 auto;
+    width: 16.667%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .col-sm-10 {
+    flex: 0 0 auto;
+    width: 83.333%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .col-md-6 {
+    flex: 0 0 auto;
+    width: 50%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .row-cols-2 > * {
+    flex: 0 0 auto;
+    width: 50%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .row-cols-3 > * {
+    flex: 0 0 auto;
+    width: 33.333%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  @media (max-width: 576px) {
+    .row-cols-2 > *,
+    .row-cols-3 > * {
+      width: 100%;
+    }
+    .col-sm-2,
+    .col-sm-10 {
+      width: 100%;
+    }
+  }
+  .no-gutters {
+    margin-right: 0;
+    margin-left: 0;
+  }
+  .no-gutters > * {
+    padding-right: 0;
+    padding-left: 0;
+  }
+  .p-3 {
+    padding: 1rem !important;
+  }
+  .mt-4 {
+    margin-top: 1.5rem !important;
+  }
+  .mb-3 {
+    margin-bottom: 1rem !important;
+  }
+  .mb-0 {
+    margin-bottom: 0 !important;
+  }
+  .ml-1 {
+    margin-left: 0.25rem !important;
+  }
+  .ml-2 {
+    margin-right: 0.5rem !important;
+  }
+  .ml-md-4 {
+    margin-left: 1.5rem !important;
+  }
+  .mr-2 {
+    margin-right: 0.5rem !important;
+  }
+  .p-1 {
+    padding: 0.25rem !important;
+  }
+  .pr-2 {
+    padding-right: 0.5rem !important;
+  }
+  .pl-2 {
+    padding-left: 0.5rem !important;
+  }
+  .font-weight-bold {
+    font-weight: 700 !important;
+  }
+  .font-weight-medium {
+    font-weight: 500 !important;
+  }
+  .font-weight-light {
+    font-weight: 300 !important;
+  }
+  .text-lowercase {
+    text-transform: lowercase !important;
+  }
+  .text-uppercase {
+    text-transform: uppercase !important;
+  }
+  .text-center {
+    text-align: center !important;
+  }
+  .text-right {
+    text-align: right !important;
+  }
+  .d-flex {
+    display: flex !important;
+  }
+  .flex-wrap {
+    flex-wrap: wrap !important;
+  }
+  .align-items-center {
+    align-items: center !important;
+  }
+  .w-100 {
+    width: 100% !important;
+  }
+  .h-100 {
+    height: 100% !important;
+  }
+  .list-group {
+    display: flex;
+    flex-direction: column;
+    padding-left: 0;
+    margin-bottom: 0;
+    border-radius: 0.25rem;
+  }
+  .list-group-flush > .list-group-item {
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+  .list-group-item {
+    position: relative;
+    display: block;
+    padding: 0.75rem 1.25rem;
+    border: 1px solid var(--global-divider-color);
+  }
+  .list-group-flush > .list-group-item + .list-group-item {
+    border-top: 0;
+  }
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .table-sm td,
+  .table-sm th {
+    padding: 0.25rem;
+  }
+  .table-borderless td,
+  .table-borderless th {
+    border: 0;
+  }
+  .table-cv {
+    background-color: transparent !important;
+    font-size: 0.875rem;
+  }
+  .table-cv td,
+  .table-cv th {
+    padding: 2px 4px;
+    vertical-align: top;
+  }
+
+  /* ─── Featured posts (blog index card grid) ─────────────────────── */
+  .featured-posts a {
+    color: var(--global-text-color);
+    text-decoration: none;
+  }
+  .featured-posts a:hover {
+    color: var(--global-theme-color);
+  }
+  .featured-posts a:hover .card-title {
+    color: var(--global-theme-color);
+  }
+  .featured-posts .card-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--global-text-color-light);
+    font-size: 0.875rem;
+  }
+  .featured-posts .post-meta {
+    color: var(--global-text-color-light);
+    font-size: 0.875rem;
+    margin-bottom: 0;
+    padding-top: 0.5rem;
+  }
+  /* Pinned cards share one row height: the flex column stretches every column
+     to the tallest card, and the anchor + card fill it (equal-size grid). */
+  .featured-posts .row-cols-2 > *,
+  .featured-posts .row-cols-3 > * {
+    display: flex;
+  }
+  .featured-posts .col > a {
+    display: flex;
+    width: 100%;
+  }
+  .featured-posts .card {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+  .featured-posts .card-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  /* ─── Bootstrap-style .card (used by featured posts) ────────────── */
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background-color: var(--global-card-bg-color);
+    border: 1px solid var(--global-divider-color);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .card.hoverable {
+    transition: box-shadow 0.25s ease;
+  }
+  .card.hoverable:hover {
+    box-shadow:
+      0 5px 11px rgba(0, 0, 0, 0.18),
+      0 4px 15px rgba(0, 0, 0, 0.15);
+  }
+  .card-body {
+    padding: 1.25rem;
+    flex: 1;
+  }
+  .card-title {
+    color: var(--global-text-color);
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    font-family: var(--font-sans);
+    transition: color 0.15s ease;
+  }
+  .card-text {
+    color: var(--global-text-color-light);
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+  .card-img-top {
+    width: 100%;
+    height: 200px;
+    display: block;
+    object-fit: cover;
+  }
+  /* CV card variant */
+  .card.mt-3 {
+    margin-top: 1rem !important;
+  }
+
+  /* Bootstrap xs columns (always-on, used in CV two-column layout) */
+  .col-xs-2 {
+    flex: 0 0 auto;
+    width: 16.667%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .col-xs-10 {
+    flex: 0 0 auto;
+    width: 83.333%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  @media (max-width: 480px) {
+    .col-xs-2,
+    .col-xs-10 {
+      width: 100%;
+    }
+  }
+
+  /* Bootstrap .badge base (used for CV date badges) */
+  .badge {
+    display: inline-block;
+    padding: 0.25em 0.4em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+  }
+  .align-middle {
+    vertical-align: middle !important;
+  }
+
+  /* MDB danger-color-dark — use theme color so CV matches site palette */
+  .danger-color-dark {
+    background-color: var(--global-theme-color) !important;
+    color: #fff !important;
+  }
+
+  /* ─── Publications styles (matches al-folio _publications.scss) ──── */
+  .publications {
+    margin-top: 2rem;
+  }
+  .publications h2.year {
+    color: var(--global-theme-color);
+    border-top: none;
+    border-bottom: 1px solid var(--global-divider-color);
+    padding-top: 0;
+    padding-bottom: 0.4rem;
+    margin-top: 2.5rem;
+    margin-bottom: 1.25rem;
+    text-align: right;
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .publications ol.bibliography {
+    list-style: none;
+    padding: 0;
+    margin-top: 0;
+    display: grid;
+    /* `minmax(0, 1fr)` instead of the implicit `auto` track: an auto track is
+       sized by the widest item's min-content, so a long title/clamped line
+       pushed the whole grid (and the page) wider than a phone screen. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+  .publications ol.bibliography li {
+    margin-bottom: 0;
+    padding: 1.25rem 1.4rem;
+    border: 1px solid var(--global-divider-color);
+    border-radius: 18px;
+    background-color: color-mix(in srgb, var(--global-card-bg-color) 78%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
+    /* Uniform height: short cards stretch, buttons pin to the bottom. */
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 13.5rem;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+  }
+  .publications ol.bibliography li:hover {
+    transform: translateY(-3px);
+    border-color: var(--global-theme-color);
+    box-shadow: 0 16px 44px rgba(255, 122, 24, 0.14);
+  }
+  /* Publication card interior: fixed body (never grows when a box opens
+     below) + optional side thumbnail. */
+  .publications ol.bibliography li .pub-entry {
+    display: flex;
+    flex: 0 0 auto;
+    min-height: 11rem;
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+  .publications ol.bibliography li .pub-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Meta row — badge + year anchor the top of every card. */
+  .publications ol.bibliography li .pub-meta-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 0.55rem;
+  }
+  .publications ol.bibliography li .pub-abbr {
+    display: inline-block;
+    background: linear-gradient(120deg, var(--global-theme-color), var(--global-hover-color));
+    color: #fff;
+    padding: 0.28em 0.9em;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(255, 122, 24, 0.35);
+  }
+  .publications ol.bibliography li .pub-year {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--global-text-color-light);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
+  /* Side thumbnail — fills the entry height so its bottom always aligns
+     with the button row (entry never grows: no stretch-on-open). */
+  .publications ol.bibliography li .pub-thumb {
+    flex: 0 0 170px;
+    min-width: 0;
+    display: flex;
+    align-self: stretch;
+  }
+  .publications ol.bibliography li .pub-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+  @media (max-width: 640px) {
+    .publications ol.bibliography li .pub-entry {
+      flex-direction: column;
+    }
+    .publications ol.bibliography li .pub-thumb {
+      flex: none;
+      width: 100%;
+      max-width: 280px;
+      /* Stacked above the text: `align-self` keeps the capped image centred
+         instead of hugging the start edge of the column. */
+      align-self: center;
+    }
+    .publications ol.bibliography li .pub-thumb img {
+      height: 180px;
+    }
+  }
+  .publications ol.bibliography li .preview {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 12px;
+    border: 1px solid var(--global-divider-color);
+  }
+  .publications ol.bibliography li .title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: var(--global-text-color);
+  }
+  /* Long titles/authors clamp to two lines so the body height (and the
+     thumbnail gap) stays stable; hover reveals the full text.
+     Legacy -webkit-* (all engines) + standard line-clamp (modern). */
+  .publications ol.bibliography li .pub-main .title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+  .publications ol.bibliography li .pub-main .author {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+  .publications ol.bibliography li .pub-main .title:hover {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: none;
+  }
+  .publications ol.bibliography li .pub-main .title:focus-within {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: none;
+  }
+  .publications ol.bibliography li .pub-main .author:hover {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: none;
+  }
+  .publications ol.bibliography li .author {
+    color: var(--global-text-color);
+    font-size: 0.875rem;
+  }
+  .publications ol.bibliography li .author a {
+    color: var(--global-text-color);
+    text-decoration: none;
+  }
+  .publications ol.bibliography li .author a:hover {
+    color: var(--global-theme-color);
+    text-decoration: none;
+  }
+  .publications ol.bibliography li .author > em {
+    border-bottom: 1px solid;
+    font-style: normal;
+    font-weight: 600;
+  }
+  .publications ol.bibliography li .periodical {
+    color: var(--global-text-color-light);
+    font-size: 0.875rem;
+  }
+  .publications ol.bibliography li .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    /* Pin the button row to the bottom so all cards align. */
+    margin-top: auto;
+    padding-top: 0.75rem;
+  }
+  .publications ol.bibliography li .links a.btn,
+  .publications ol.bibliography li .links button.btn {
+    color: var(--global-text-color);
+    border: 1px solid var(--global-divider-color);
+    background: color-mix(in srgb, var(--global-theme-color) 7%, transparent);
+    padding: 0.28rem 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 999px;
+    text-decoration: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.15s ease;
+  }
+  .publications ol.bibliography li .links a.btn:hover,
+  .publications ol.bibliography li .links button.btn:hover {
+    color: #fff;
+    background: linear-gradient(120deg, var(--global-theme-color), var(--global-hover-color));
+    border-color: transparent;
+    transform: translateY(-1px);
+  }
+  .publications ol.bibliography li .links a.award.btn,
+  .publications ol.bibliography li .links button.award.btn {
+    border-color: var(--global-highlight-color, #a00000);
+    color: var(--global-highlight-color, #a00000);
+  }
+  .publications ol.bibliography li .pub-hidden {
+    display: block;
+    font-size: 0.875rem;
+    max-height: 0;
+    opacity: 0;
+    visibility: hidden;
+    overflow: hidden;
+    text-align: justify;
+    margin-top: 0;
+    transition:
+      max-height 0.35s ease,
+      opacity 0.3s ease,
+      margin-top 0.3s ease,
+      border-color 0.3s ease,
+      visibility 0.3s;
+  }
+  .publications ol.bibliography li .pub-hidden.is-open {
+    max-height: 100em;
+    opacity: 1;
+    visibility: visible;
+    margin-top: 0.9rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .publications ol.bibliography li .pub-hidden {
+      transition: none;
+    }
+  }
+  /* Expandable boxes are direct card children: full-width section below the body. */
+  .publications ol.bibliography li > .pub-hidden {
+    width: 100%;
+    border-top: 1px solid transparent;
+  }
+  .publications ol.bibliography li > .pub-hidden.is-open {
+    border-top-color: var(--global-divider-color);
+  }
+  .publications ol.bibliography li .abstract.pub-hidden {
+    border: dashed 1px transparent;
+  }
+  .publications ol.bibliography li .abstract.pub-hidden.is-open {
+    border-color: var(--global-text-color);
+  }
+  .publications ol.bibliography li .pub-hidden p {
+    line-height: 1.4em;
+    margin: 10px;
+  }
+  .publications ol.bibliography li .pub-hidden pre {
+    font-size: 0.875rem;
+    line-height: 1.4em;
+    padding: 10px;
+    background: var(--global-code-bg-color);
+    border-radius: 4px;
+    overflow-x: auto;
+  }
+  .publications ol.bibliography li .badges {
+    padding-bottom: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  /* Soften third-party Altmetric/Dimensions widget colours in dark mode */
+  html[data-theme='dark'] .publications .altmetric-embed,
+  html[data-theme='dark'] .publications .__dimensions_badge_embed__ {
+    filter: brightness(0.85) contrast(1.1) saturate(0.9);
+  }
+
+  /* Ensure badge images sit correctly inside flex rows */
+  .publications .badges img,
+  .publications .badges a {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+  }
+}
+
+/* ─── Prose (Markdown body) ──────────────────────────────────────────────── */
+
+@layer base {
+  .prose {
+    color: var(--global-text-color);
+    line-height: 1.7;
+  }
+
+  /* Vertical rhythm between block elements. Tailwind Preflight zeroes every
+     margin and strips list markers, so without this the whole article sits
+     flush together. One owl selector keeps the flow even; the rules below
+     fine-tune headings, lists, code blocks and tables. */
+  .prose > * + * {
+    margin-top: 0.85rem;
+  }
+
+  .prose > h2 {
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .prose > h3 {
+    margin-top: 1.4rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .prose > h4,
+  .prose > h5,
+  .prose > h6 {
+    margin-top: 1.1rem;
+    margin-bottom: 0.3rem;
+  }
+
+  /* Restore the list markers and indentation Preflight removed. */
+  .prose ul,
+  .prose ol {
+    padding-inline-start: 1.6rem;
+  }
+
+  .prose ul {
+    list-style: disc;
+  }
+
+  .prose ol {
+    list-style: decimal;
+  }
+
+  .prose li + li {
+    margin-top: 0.3rem;
+  }
+
+  /* Code blocks and tables get a little more air than running prose. Code
+     blocks are wrapped in `.code-frame` by the copy-button script at runtime,
+     so target both the wrapper (hydrated) and the raw <pre> (no JS). */
+  .prose > pre,
+  .prose > .code-frame,
+  .prose > table {
+    margin-block: 1.25rem;
+  }
+
+  /* Justified body text so line lengths look even in both languages. */
+  .prose p,
+  .prose li {
+    text-align: justify;
+    text-justify: inter-word;
+    overflow-wrap: break-word;
+  }
+
+  [dir='rtl'] .prose p,
+  [dir='rtl'] .prose li {
+    text-align: justify;
+  }
+
+  .prose a {
+    color: var(--global-theme-color);
+  }
+
+  .prose a:hover {
+    color: var(--global-hover-color);
+  }
+
+  .prose img {
+    border-radius: 4px;
+  }
+
+  /* Shiki code blocks — soft glass card with a rounded frame. */
+  .prose pre {
+    position: relative;
+    border: 1px solid var(--global-divider-color);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    overflow-x: auto;
+    line-height: 1.6;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.06);
+  }
+
+  html[data-theme='dark'] .prose pre {
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
+  }
+
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .prose table th,
+  .prose table td {
+    border: 1px solid var(--global-divider-color);
+    padding: 0.5rem 0.75rem;
+    text-align: start;
+  }
+
+  /* Per-table direction is derived from the table's own content at build time
+     (see `rehypeTableDirection` in astro.config.mjs), so alignment follows the
+     table — not the article. A Persian table is right-aligned inside an English
+     post, and an English table stays left-aligned inside a Persian post. */
+  .prose table[dir='rtl'] th,
+  .prose table[dir='rtl'] td {
+    text-align: right;
+  }
+
+  .prose table[dir='ltr'] th,
+  .prose table[dir='ltr'] td {
+    text-align: left;
+  }
+
+  /* Footnote targets must clear the fixed navbar when jumping to a footnote and
+     when following a footnote's back-reference to the text. */
+  .prose [data-footnotes] li,
+  .prose a[data-footnote-ref],
+  .prose a[data-footnote-backref] {
+    scroll-margin-top: calc(var(--navbar-height) + 14px);
+  }
+
+  .prose table th {
+    background-color: var(--global-code-bg-color);
+    font-weight: 600;
+  }
+
+  /* KaTeX display math */
+  .prose .math-display {
+    overflow-x: auto;
+    padding: 0.5rem 0;
+  }
+}
+
+/* ─── Shiki dual-theme dark mode ─────────────────────────────────────────── */
+/* Shiki embeds light colors as inline styles and dark colors as CSS vars.   */
+/* This maps our [data-theme='dark'] toggle to those variables.              */
+
+html[data-theme='dark'] .astro-code {
+  background-color: var(--shiki-dark-bg) !important;
+  color: var(--shiki-dark) !important;
+}
+html[data-theme='dark'] .astro-code span {
+  color: var(--shiki-dark) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+/* ─── diff2html dark mode ────────────────────────────────────────────────── */
+/* diff2html defines --d2h-dark-* variables and applies them via              */
+/* prefers-color-scheme: dark. We use [data-theme='dark'] instead, so        */
+/* remap the base variables here to match our theme toggle.                  */
+
+html[data-theme='dark'] {
+  --d2h-bg-color: var(--d2h-dark-bg-color, #0d1117);
+  --d2h-border-color: var(--d2h-dark-border-color, #30363d);
+  --d2h-dim-color: var(--d2h-dark-dim-color, #6e7681);
+  --d2h-line-border-color: var(--d2h-dark-line-border-color, #21262d);
+  --d2h-file-header-bg-color: var(--d2h-dark-file-header-bg-color, #161b22);
+  --d2h-file-header-border-color: var(--d2h-dark-file-header-border-color, #30363d);
+  --d2h-empty-placeholder-bg-color: var(
+    --d2h-dark-empty-placeholder-bg-color,
+    hsla(215, 8%, 47%, 0.1)
+  );
+  --d2h-empty-placeholder-border-color: var(--d2h-dark-empty-placeholder-border-color, #30363d);
+  --d2h-selected-color: var(--d2h-dark-selected-color, rgba(56, 139, 253, 0.1));
+  --d2h-ins-bg-color: var(--d2h-dark-ins-bg-color, rgba(46, 160, 67, 0.15));
+  --d2h-ins-border-color: var(--d2h-dark-ins-border-color, rgba(46, 160, 67, 0.4));
+  --d2h-ins-highlight-bg-color: var(--d2h-dark-ins-highlight-bg-color, rgba(46, 160, 67, 0.4));
+  --d2h-ins-label-color: var(--d2h-dark-ins-label-color, #3fb950);
+  --d2h-del-bg-color: var(--d2h-dark-del-bg-color, rgba(248, 81, 73, 0.1));
+  --d2h-del-border-color: var(--d2h-dark-del-border-color, rgba(248, 81, 73, 0.4));
+  --d2h-del-highlight-bg-color: var(--d2h-dark-del-highlight-bg-color, rgba(248, 81, 73, 0.4));
+  --d2h-del-label-color: var(--d2h-dark-del-label-color, #f85149);
+  --d2h-change-del-color: var(--d2h-dark-change-del-color, rgba(210, 153, 34, 0.2));
+  --d2h-change-ins-color: var(--d2h-dark-change-ins-color, rgba(46, 160, 67, 0.25));
+  --d2h-info-bg-color: var(--d2h-dark-info-bg-color, rgba(56, 139, 253, 0.1));
+  --d2h-info-border-color: var(--d2h-dark-info-border-color, rgba(56, 139, 253, 0.4));
+  --d2h-change-label-color: var(--d2h-dark-change-label-color, #d29922);
+  --d2h-moved-label-color: var(--d2h-dark-moved-label-color, #3572b0);
+  --d2h-color: var(--d2h-dark-color, #e6edf3);
+}
+
+html[data-theme='dark'] .d2h-wrapper {
+  color: var(--d2h-color, #e6edf3);
+}
+html[data-theme='dark'] .d2h-file-wrapper {
+  background-color: var(--d2h-bg-color);
+}
+
+/* ─── Sticky footer: add body padding so content isn't hidden behind it ───── */
+
+body[data-footer-position='sticky'] {
+  padding-bottom: 60px; /* approx footer height */
+}
+
+/* ─── medium-zoom — ensure overlay sits above all fixed UI (navbar, progress bar, ninja-keys) ── */
+
+.medium-zoom-overlay {
+  z-index: 10000;
+}
+
+.medium-zoom-image--opened {
+  z-index: 10001;
+}
+
+/* ─── Back-to-top button ─────────────────────────────────────────────────── */
+
+#back-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px; /* end side of an LTR page */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  z-index: 200; /* above sticky footer (z-index: 100) */
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--global-back-to-top-bg-color);
+  color: var(--global-back-to-top-text-color);
+  transition: opacity 0.2s ease;
+}
+
+/* A mirrored page puts the floating button in the opposite (left) corner.
+   The CONTENT direction wins over the chrome direction: a Persian post keeps
+   the button on the left even when the site chrome is switched to English,
+   and an English post keeps it on the right under Persian chrome. Pages
+   without a single content zone (listings, members…) omit `data-content-dir`
+   and simply follow the page direction. Both offsets are always set
+   explicitly — never an over-constrained left/right pair. */
+html[dir='rtl'] #back-to-top,
+body[data-content-dir='rtl'] #back-to-top {
+  right: auto;
+  left: 30px;
+}
+
+body[data-content-dir='ltr'] #back-to-top {
+  right: 30px;
+  left: auto;
+}
+
+#back-to-top.visible {
+  display: flex;
+}
+
+#back-to-top:hover {
+  opacity: 0.8;
+}
+
+/* Lift the button above the sticky footer */
+body[data-footer-position='sticky'] #back-to-top {
+  bottom: 70px;
+}
+
+/* ─── Focus styles (keyboard navigation) ────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--global-theme-color);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ─── Tooltips (features.tooltips: true) ────────────────────────────────── */
+/* CSS-only; activated by body[data-tooltips]. No JS, no external deps.
+   Uses content: attr(data-tooltip) — plain text only, XSS-safe. */
+
+body[data-tooltips] [data-tooltip] {
+  position: relative;
+}
+
+/* Tooltip bubble */
+body[data-tooltips] [data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  background: var(--global-text-color);
+  color: var(--global-bg-color);
+  padding: 0.25rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  z-index: 9999;
+}
+
+/* Arrow */
+body[data-tooltips] [data-tooltip]::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--global-text-color);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 9999;
+}
+
+body[data-tooltips] [data-tooltip]:hover::after,
+body[data-tooltips] [data-tooltip]:focus-within::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+body[data-tooltips] [data-tooltip]:hover::before,
+body[data-tooltips] [data-tooltip]:focus-within::before {
+  opacity: 1;
+}
+
+/* ─── Cursor glow (follows the mouse, DINA lab identity) ─────────────────── */
+
+.cursor-glow {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 330px;
+  height: 330px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(circle, rgba(255, 122, 24, 0.1), transparent 68%);
+  transform: translate(-50%, -50%);
+  filter: blur(4px);
+}
+
+html:not([data-theme='dark']) .cursor-glow {
+  background: radial-gradient(circle, rgba(243, 107, 18, 0.08), transparent 68%);
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .cursor-glow {
+    display: none;
+  }
+}
+
+/* ─── KaTeX display blocks stay centered in both directions ──────────────── */
+
+.prose .katex-display,
+#post-content .katex-display,
+#distill-post-content .katex-display,
+[dir='rtl'] .prose .katex-display,
+[dir='rtl'] .katex-display {
+  text-align: center;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0;
+}
+
+.katex-display > .katex {
+  direction: ltr;
+}
+
+/* Inner KaTeX element must stay an inline-block centered box in both
+   directions — otherwise display formulas stick to one side. */
+#post-content .katex-display > .katex,
+#distill-post-content .katex-display > .katex,
+.prose .katex-display > .katex {
+  display: inline-block;
+  text-align: center;
+  direction: ltr;
+  max-width: 100%;
+}
+
+/* ─── People social icons ────────────────────────────────────────────────── */
+
+.person-socials a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--global-divider-color);
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.person-socials a:hover {
+  color: var(--global-theme-color);
+  border-color: var(--global-theme-color);
+  transform: translateY(-2px);
+}
+
+.person-socials svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Phones: the card spans the full width, so the icon buttons have room to
+   become comfortable touch targets (~40px). */
+@media (max-width: 640px) {
+  .person-socials a {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 12px;
+  }
+
+  .person-socials svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+}
+
+/* ─── Member deep-link anchors (post author links land here) ─────────────── */
+
+/* Offset for the fixed navbar so the targeted card isn't hidden beneath it. */
+.member-anchor {
+  scroll-margin-top: 84px;
+  border-radius: 18px;
+}
+
+/* Persistent highlight while the anchor hash matches — no JS needed. */
+.member-anchor:target {
+  outline: 2px solid var(--global-theme-color);
+  outline-offset: 6px;
+}
+
+.member-anchor:target .member-card {
+  border-color: var(--global-theme-color);
+  box-shadow:
+    0 0 0 1px var(--global-theme-color),
+    0 18px 50px rgba(255, 122, 24, 0.22);
+}
+
+.member-anchor,
+.member-anchor .member-card {
+  transition:
+    outline-color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Uniform member grid: the anchor stretches to the row height and the card
+   fills it, so bios and focus chips of different lengths never produce
+   different-sized cards. Long bios clamp to three lines. */
+.member-anchor {
+  height: 100%;
+}
+
+.member-anchor .member-card {
+  height: 100%;
+}
+
+.member-card:not(.is-horizontal) .member-inner {
+  min-height: 344px;
+}
+
+/* Reserve two name lines so a long display name cannot make one card taller
+   than the rest; an explicit line-height keeps the Latin and Persian blocks
+   on the same rhythm. */
+.member-card:not(.is-horizontal) .member-name {
+  line-height: 1.35;
+  min-height: 2.7rem;
+}
+
+/* Reserve the tallest focus-chip layout and a three-line bio so every card's
+   content block is the same height — the grid row then renders as a clean,
+   uniform matrix in both languages. */
+.member-card:not(.is-horizontal) .member-focus {
+  min-height: 6.4rem;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
+.member-card .member-bio {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  min-height: 3.96rem;
+  overflow: hidden;
+}
+
+/* Phones render the cards in a single column, so nothing has to line up with a
+   neighbour: the reserved name / chip rows only add empty glass. Drop the
+   reservations there (the bio keeps its three-line clamp). `639.98px` matches
+   the grid's own 640px boundary — from 640px up the row goes multi-column and
+   the reservations are needed again. */
+@media (max-width: 639.98px) {
+  .member-card:not(.is-horizontal) .member-name,
+  .member-card:not(.is-horizontal) .member-focus,
+  .member-card .member-bio {
+    min-height: 0;
+  }
+}
+
+/* ─── Bilingual people cards (one language visible at a time) ────────────── */
+
+html[lang='fa'] .who-en {
+  display: none;
+}
+
+html:not([lang='fa']) .who-fa {
+  display: none;
+}
+
+/* ─── Directional arrows (mirror in RTL) ─────────────────────────────────── */
+/* The arrow sits inside a content zone on posts (article[dir]) and in the
+   chrome on archive pages. Pin it to the ZONE it belongs to, so an English
+   post keeps its left arrow even while the chrome language is Persian. */
+
+.back-arrow {
+  display: inline-block;
+}
+
+article[dir='ltr'] .back-arrow {
+  transform: none;
+}
+
+article[dir='rtl'] .back-arrow,
+[dir='rtl'] .back-arrow {
+  transform: scaleX(-1);
+}
+
+/* ─── Post authors (linked People profiles) ────────────────────────────── */
+
+.post-authors {
+  font-size: 0.9rem;
+  color: var(--global-text-color-light);
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.post-authors-label {
+  font-weight: 600;
+}
+
+.post-author-link {
+  color: var(--global-theme-color);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.post-author-link:hover {
+  text-decoration: none;
+}
+
+.post-card-authors a {
+  color: var(--global-theme-color);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.post-card-authors a:hover {
+  text-decoration: underline;
+}
+
+/* ─── Glass theme (DINA lab) ─────────────────────────────────────────────── */
+/* Frosted-glass surfaces: translucent backgrounds + backdrop blur + gradient
+   accents. All colors derive from theme variables so dark mode just works. */
+
+.navbar {
+  background-color: color-mix(in srgb, var(--global-bg-color) 72%, transparent) !important;
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+}
+
+.navbar::after {
+  content: '';
+  display: block;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--global-theme-color),
+    var(--global-hover-color),
+    transparent
+  );
+  opacity: 0.7;
+}
+
+/* Light mode needs stronger translucency to read as glass over cream paper. */
+html:not([data-theme='dark']) .navbar {
+  background-color: color-mix(in srgb, var(--global-bg-color) 62%, transparent) !important;
+  box-shadow: 0 12px 32px rgba(33, 54, 71, 0.1);
+}
+
+html:not([data-theme='dark']) .post-list li,
+html:not([data-theme='dark']) .card.hoverable {
+  background-color: color-mix(in srgb, var(--global-card-bg-color) 66%, transparent);
+  border-color: color-mix(in srgb, var(--global-theme-color) 22%, var(--global-divider-color));
+  box-shadow: 0 12px 32px rgba(33, 54, 71, 0.1);
+}
+
+/* ─── Card + list polish (modern academic) ───────────────────────────────── */
+
+.post-list li {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--global-divider-color);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  background-color: color-mix(in srgb, var(--global-card-bg-color) 82%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.post-list li:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  border-color: var(--global-theme-color);
+}
+
+/* Uniform blog rows: the text block clamps the title and description to two
+   lines and always reserves two description lines, and the visual block is
+   fixed — so cards with long or short copy (or none) line up exactly. */
+.post-list .post-row {
+  min-height: 156px;
+}
+
+.post-list .post-row .post-body > p:not(.post-meta):not(.post-tags) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  min-height: 3.4em;
+  overflow: hidden;
+}
+
+.post-list .post-row .post-body h3 a.post-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.card {
+  border-radius: 16px;
+}
+
+.card.hoverable {
+  background-color: color-mix(in srgb, var(--global-card-bg-color) 82%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.card.hoverable:hover {
+  transform: translateY(-3px);
+  border-color: var(--global-theme-color);
+}
+
+/* Gradient blog header title. */
+.header-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.header-bar h1 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  background: linear-gradient(120deg, var(--global-theme-color), var(--global-hover-color));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  position: relative;
+}
+
+.blog-mark {
+  width: 120px;
+  height: 120px;
+  border-radius: 32px;
+  object-fit: cover;
+  margin: 0 auto 1.25rem;
+  display: block;
+  position: relative;
+  z-index: 1;
+  box-shadow:
+    0 0 0 1px var(--global-divider-color),
+    0 0 0 8px color-mix(in srgb, var(--global-theme-color) 14%, transparent),
+    0 24px 64px rgba(255, 122, 24, 0.35);
+}
+
+/* Blog hero — glass panel with display type and ambient glows. */
+.blog-hero {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  border: 1px solid var(--global-divider-color);
+  border-radius: 28px;
+  padding: 3rem 1.5rem 2.75rem;
+  margin-top: 1.5rem;
+  background:
+    radial-gradient(circle at 50% -20%, rgba(255, 122, 24, 0.16), transparent 60%),
+    radial-gradient(circle at 88% 110%, rgba(41, 91, 128, 0.14), transparent 55%),
+    color-mix(in srgb, var(--global-card-bg-color) 72%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+}
+
+.blog-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(226, 182, 87, 0.18), transparent 32%),
+    radial-gradient(circle at 85% 25%, rgba(255, 122, 24, 0.12), transparent 30%);
+}
+
+.blog-hero > *:not(.blog-hero-glow) {
+  position: relative;
+  z-index: 1;
+}
+
+.blog-hero h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  line-height: 1.1;
+  margin: 0 0 0.75rem;
+  background: linear-gradient(120deg, var(--global-theme-color), var(--global-hover-color));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.blog-lede {
+  max-width: 44rem;
+  margin: 0 auto;
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: var(--global-text-color-light);
+}
+
+/* Persian hero keeps Vazirmatn and looser rhythm. */
+[dir='rtl'] .blog-hero h1,
+[lang='fa'] .blog-hero h1 {
+  font-family: var(--font-fa);
+  letter-spacing: 0;
+}
+
+/* Pill pagination + glass tag badges. */
+.pagination-btn {
+  border-radius: 999px !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.pagination-btn:hover {
+  transform: translateY(-1px);
+}
+
+.badge-abbr {
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* ─── Publications search (shared chrome) ─────────────────────────────────── */
+/* Direction is driven by the <html dir> set pre-paint, so the box is correct
+   on the first frame and never waits for the React island to hydrate. */
+.pub-search {
+  direction: ltr;
+  text-align: left;
+}
+
+[dir='rtl'] .pub-search {
+  direction: rtl;
+  text-align: right;
+}
+
+/* ─── RTL layout support ─────────────────────────────────────────────────── */
+
+[dir='rtl'] .page-container,
+[dir='rtl'] article,
+[dir='rtl'] .prose {
+  text-align: right;
+}
+
+[dir='rtl'] .post-list .post-meta,
+[dir='rtl'] .post-list .post-tags,
+[dir='rtl'] .post-authors {
+  text-align: right;
+}
+
+/* ─── Content-zone isolation ─────────────────────────────────────────────── */
+/* A content zone (post, card, publication entry) pins BOTH direction and
+   alignment from its own language. text-align inherits straight through dir
+   boundaries, so dir alone cannot isolate a zone — these explicit pins
+   override the page-level rules above for everything inside the zone. */
+
+article[dir='ltr'],
+.post-row[dir='ltr'],
+.pub-entries,
+.featured-posts .card[dir='ltr'],
+.pub-detail {
+  text-align: left;
+}
+
+article[dir='ltr'] .prose,
+article[dir='ltr'] .post-authors,
+article[dir='ltr'] .post-meta,
+article[dir='ltr'] .post-tags,
+.post-list .post-row[dir='ltr'] .post-meta,
+.post-list .post-row[dir='ltr'] .post-tags,
+.post-list .post-row[dir='ltr'] .post-authors {
+  text-align: left;
+}
+
+article[dir='rtl'],
+.post-row[dir='rtl'],
+.featured-posts .card[dir='rtl'] {
+  text-align: right;
+}
+
+article[dir='rtl'] .post-authors,
+article[dir='rtl'] .post-meta,
+article[dir='rtl'] .post-tags {
+  text-align: right;
+}
+
+/* Fonts follow the CONTENT language, not the chrome language.
+   The chrome's language helpers live on <html> ([lang='fa'], [dir='rtl']) and
+   cascade down, so an English post rendered while chrome is Persian would
+   inherit Vazirmatn — and the reverse for a Persian post on English chrome.
+   Each content zone re-pins its own faces (body + headings) at a specificity
+   that beats those ancestor helpers, so a Latin post never shows Vazirmatn
+   and a Persian post never shows the Latin face. */
+
+.page-container[dir='ltr'],
+.distill-page-container[dir='ltr'],
+article[dir='ltr'],
+.post-row[dir='ltr'],
+.featured-posts .card[dir='ltr'],
+.pub-entries,
+.pub-detail {
+  font-family: var(--font-sans);
+}
+
+.page-container[dir='ltr'] :is(h1, h2, h3, h4, h5, h6),
+.distill-page-container[dir='ltr'] :is(h1, h2, h3, h4, h5, h6),
+article[dir='ltr'] :is(h1, h2, h3, h4, h5, h6),
+.post-row[dir='ltr'] :is(h1, h2, h3, h4, h5, h6),
+.featured-posts .card[dir='ltr'] :is(h1, h2, h3, h4, h5, h6),
+.pub-entries :is(h1, h2, h3, h4, h5, h6),
+.pub-detail :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-display);
+  line-height: 1.3;
+}
+
+/* The RTL rhythm helpers ([dir='rtl'] body/article/.prose) are ancestor-based
+   and would leak a taller line-height + zero letter-spacing into an English
+   zone on a Persian page — pin the Latin defaults back. */
+article[dir='ltr'],
+article[dir='ltr'] .prose,
+.post-row[dir='ltr'],
+.pub-entries,
+.pub-detail {
+  line-height: 1.7;
+  letter-spacing: normal !important;
+}
+
+/* A Persian publication entry follows its OWN language: Vazirmatn, RTL and
+   right alignment — while the LTR list wrapper around it is untouched. */
+.pub-entries li[lang='fa'] {
+  font-family: var(--font-fa);
+  text-align: right;
+  line-height: 2;
+}
+
+.pub-entries li[lang='fa'] :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-fa);
+  line-height: 1.35;
+}
+
+/* The card title opts into the display face explicitly — pin it back for Persian
+   so it does not silently rely on glyph fallback. */
+.pub-entries li[lang='fa'] .title {
+  font-family: var(--font-fa);
+}
+
+/* A Persian publication DETAIL page follows the entry language too. */
+.pub-detail[dir='rtl'] {
+  font-family: var(--font-fa);
+  text-align: right;
+  line-height: 2;
+}
+
+.pub-detail[dir='rtl'] :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-fa);
+  line-height: 1.35;
+}
+
+/* Tag/category filter rows stay centered in both directions. */
+[dir='rtl'] .tag-category-list,
+[dir='rtl'] .tag-category-list ul,
+[dir='rtl'] .tag-cloud {
+  text-align: center;
+}
+
+/* Keep mixed-direction technical content readable inside RTL. */
+[dir='rtl'] pre,
+[dir='rtl'] code,
+[dir='rtl'] .katex,
+[dir='rtl'] .mermaid {
+  text-align: left;
+}
+
+/* ─── Lab hero (about page manifesto panel) ─────────────────────────────── */
+
+.lab-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  border: 1px solid var(--global-divider-color);
+  border-radius: 24px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(255, 122, 24, 0.14), transparent 45%),
+    color-mix(in srgb, var(--global-card-bg-color) 78%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.1);
+}
+
+.lab-hero-logo {
+  flex: 0 0 168px;
+  width: 168px;
+  height: 168px;
+  border-radius: 28px;
+  object-fit: cover;
+  box-shadow:
+    0 0 0 1px var(--global-divider-color),
+    0 14px 40px rgba(255, 122, 24, 0.22);
+}
+
+.lab-hero-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lab-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--global-theme-color);
+  margin-bottom: 0.4rem;
+}
+
+.lab-title {
+  font-size: 2.2rem;
+  margin-bottom: 0.25rem;
+}
+
+.lab-bio {
+  margin-top: 1rem;
+}
+
+.lab-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.lab-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--global-divider-color);
+  background: color-mix(in srgb, var(--global-theme-color) 9%, transparent);
+}
+
+.lab-stat strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--global-theme-color);
+}
+
+.lab-stat span {
+  font-size: 0.75rem;
+  color: var(--global-text-color-light);
+}
+
+@media (max-width: 640px) {
+  .lab-hero {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem;
+  }
+
+  .lab-stats {
+    justify-content: center;
+  }
+}
+
+/* ─── Post hero banner (optional `image` frontmatter) ────────────────────── */
+
+.post-hero {
+  margin: 0 0 2rem;
+}
+
+.post-hero img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: 16px 16px 0 0;
+  border: 1px solid var(--global-divider-color);
+  border-bottom: none;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.1);
+  display: block;
+  /* Glass dissolve: full image at the top, fading into the body text. */
+  -webkit-mask-image: linear-gradient(to bottom, black 78%, transparent 99%);
+  mask-image: linear-gradient(to bottom, black 78%, transparent 99%);
+}
+
+#post-content .post-hero img {
+  cursor: zoom-in;
+}
+
+/* ─── Code copy button (injected via JS on posts + citation blocks) ───────── */
+/* The button lives in a `.code-frame` wrapper AROUND the <pre>, never inside
+   it: a horizontal scroll moves every descendant of the scroller, so a button
+   inside the <pre> slid away with the code on narrow screens. The frame does
+   not scroll, so the button stays pinned to its top-right corner (code always
+   stays LTR, in both page directions). */
+
+.code-frame {
+  position: relative;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  left: auto;
+  padding: 0.22rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--global-divider-color);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-family: var(--font-mono, monospace);
+  background-color: color-mix(in srgb, var(--global-card-bg-color, #f5f5f5) 86%, transparent);
+  color: var(--global-text-color-light, #888);
+  line-height: 1.5;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+/* The button lives in the `.code-frame` wrapper (never inside the <pre>), so
+   reveal it when the frame — not the <pre> — is hovered or holds focus. */
+.code-frame:hover .copy-btn,
+.code-frame:focus-within .copy-btn {
+  opacity: 1;
+}
+.copy-btn:hover {
+  background-color: var(--global-theme-color);
+  color: var(--global-hover-text-color, #fff);
+  border-color: var(--global-theme-color);
+}
+/* Touch/hover-less devices can't reveal the button on hover — keep it shown. */
+@media (hover: none) {
+  .copy-btn {
+    opacity: 1;
+  }
+}
+
+/* Every code surface stays LTR + left-aligned in both page directions. */
+pre,
+pre code,
+.jupyter-notebook pre,
+.jupyter-notebook .jupyter-output {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+}
+
+/* ─── Mermaid diagrams ───────────────────────────────────────────────────── */
+
+.mermaid {
+  direction: ltr;
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Loading shimmer while the Mermaid CDN bundle renders the diagram. */
+.mermaid-loading {
+  min-height: 6rem;
+  border-radius: 12px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--global-card-bg-color) 0,
+    var(--global-card-bg-color) 40%,
+    color-mix(in srgb, var(--global-card-bg-color) 60%, transparent) 50%,
+    var(--global-card-bg-color) 60%,
+    var(--global-card-bg-color) 100%
+  );
+  background-size: 200% 100%;
+  animation: mermaid-shimmer 1.6s infinite;
+  color: transparent;
+  overflow: hidden;
+  max-height: 12rem;
+}
+
+@keyframes mermaid-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* ─── Print styles ───────────────────────────────────────────────────────── */
+
+@media print {
+  /* Hide navigation and interactive elements */
+  nav,
+  #back-to-top,
+  .newsletter-section,
+  .search-trigger,
+  footer,
+  .reading-progress,
+  .copy-btn,
+  button:not(.btncv) {
+    display: none !important;
+  }
+
+  /* Reset body padding for paper */
+  body {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Ensure full-width content */
+  .page-container,
+  article {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* Hide TOC sidebar on print */
+  aside {
+    display: none !important;
+  }
+
+  /* Sensible link rendering: show URL after link text */
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  /* Don't show URLs for nav links or buttons */
+  nav a::after,
+  .btn::after {
+    content: none !important;
+  }
+
+  /* Page breaks */
+  h1,
+  h2,
+  h3 {
+    page-break-after: avoid;
+  }
+
+  pre,
+  blockquote,
+  figure {
+    page-break-inside: avoid;
+  }
+}

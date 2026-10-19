@@ -1,0 +1,46 @@
+---
+import BlogListing from '@components/blog/BlogListing.astro';
+import { site } from '@config/site';
+import PageLayout from '@layouts/Page.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const allPosts = (await getCollection('posts'))
+    .filter((p) => !p.data.hidden && !p.data.draft)
+    .sort((a, b) => {
+      if (a.data.pinned !== b.data.pinned) return a.data.pinned ? -1 : 1;
+      return b.data.date.getTime() - a.data.date.getTime();
+    });
+
+  const perPage = site.blog.postsPerPage;
+  const totalPages = Math.ceil(allPosts.length / perPage);
+
+  return Array.from({ length: totalPages - 1 }, (_, i) => {
+    const page = i + 2; // pages 2, 3, ...
+    return {
+      params: { page: String(page) },
+      props: {
+        posts: allPosts.slice((page - 1) * perPage, page * perPage),
+        pinnedPosts: allPosts.filter((p) => p.data.pinned),
+        currentPage: page,
+        totalPages,
+      },
+    };
+  });
+}
+
+const { posts, pinnedPosts, currentPage, totalPages } = Astro.props;
+const base = site.base === '' ? '' : site.base;
+---
+
+<PageLayout title={`Blog — Page ${currentPage}`} description={site.blog.description}>
+  <BlogListing
+    pagePosts={posts}
+    pinnedPosts={pinnedPosts}
+    currentPage={currentPage}
+    totalPages={totalPages}
+    prevUrl={currentPage === 2 ? `${base}/` : `${base}/page/${currentPage - 1}/`}
+    nextUrl={currentPage < totalPages ? `${base}/page/${currentPage + 1}/` : undefined}
+    basePath={`${base}/`}
+  />
+</PageLayout>

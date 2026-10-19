@@ -1,0 +1,131 @@
+---
+import { site } from '@config/site';
+import { formatPostDate, normalizeLang, t } from '@utils/i18n';
+import type { CollectionEntry } from 'astro:content';
+
+import IconCalendar from '~icons/fa-solid/calendar';
+
+interface Props {
+  posts: CollectionEntry<'posts'>[];
+  lang?: string;
+}
+
+const { posts, lang = 'en' } = Astro.props;
+if (posts.length === 0) return;
+
+// Content zone: the section and its cards follow the post language, not the
+// site chrome language. Each card additionally follows its OWN post language.
+const sectionDir = lang === 'fa' ? 'rtl' : 'ltr';
+---
+
+<section class="related-posts" lang={lang} dir={sectionDir}>
+  <h3>{t(lang, 'relatedTitle')}</h3>
+  <p class="related-subtitle">{t(lang, 'relatedSubtitle')}</p>
+
+  <ul class="related-list">
+    {
+      posts.map((post) => {
+        // Each related card follows its OWN post language.
+        const itemLang = normalizeLang((post.data as { lang?: string }).lang ?? lang);
+        const date = formatPostDate(post.data.date, itemLang);
+        return (
+          <li class="related-item" lang={itemLang} dir={itemLang === 'fa' ? 'rtl' : 'ltr'}>
+            <a href={`${site.base}/posts/${post.id}/`} class="related-title">
+              {post.data.title}
+            </a>
+            <div class="related-meta">
+              <IconCalendar />
+              <time datetime={post.data.date.toISOString()}>{date}</time>
+              {post.data.tags.length > 0 && (
+                <>
+                  <span aria-hidden="true">&middot;</span>
+                  {post.data.tags.map((tag) => (
+                    <a href={`${site.base}/posts/tag/${tag}/`} class="related-tag">
+                      #{tag}
+                    </a>
+                  ))}
+                </>
+              )}
+            </div>
+          </li>
+        );
+      })
+    }
+  </ul>
+</section>
+
+<style>
+  .related-posts {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--global-divider-color);
+  }
+
+  .related-posts h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--global-text-color);
+    font-family: var(--font-condensed);
+    margin-bottom: 0.25rem;
+  }
+
+  .related-subtitle {
+    font-size: 0.9rem;
+    color: var(--global-text-color-light);
+    margin-bottom: 1.25rem;
+  }
+
+  .related-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .related-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--global-divider-color);
+  }
+
+  .related-item:first-child {
+    border-top: 1px solid var(--global-divider-color);
+  }
+
+  .related-title {
+    display: block;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--global-text-color);
+    text-decoration: none;
+    margin-bottom: 0.25rem;
+    transition: color 0.15s ease;
+  }
+
+  .related-title:hover {
+    color: var(--global-theme-color);
+  }
+
+  .related-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--global-text-color-light);
+  }
+
+  .related-meta svg {
+    display: inline !important;
+    width: 0.7rem;
+    height: 0.7rem;
+    flex-shrink: 0;
+  }
+
+  .related-tag {
+    color: var(--global-text-color-light);
+    text-decoration: none;
+  }
+
+  .related-tag:hover {
+    color: var(--global-theme-color);
+  }
+</style>

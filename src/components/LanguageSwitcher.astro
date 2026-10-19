@@ -1,0 +1,81 @@
+---
+import { site } from '@config/site';
+
+const langs = [...site.i18n.supported];
+if (langs.length < 2) return null;
+---
+
+<div class="lang-switcher" role="group" aria-label="Language">
+  {
+    langs.map((code, i) => {
+      const label = code === 'fa' ? 'فارسی' : 'EN';
+      const href =
+        code === site.i18n.defaultLang ? Astro.url.pathname : `${Astro.url.pathname}?lang=${code}`;
+      return (
+        <>
+          {i > 0 && (
+            <span aria-hidden="true" class="lang-sep">
+              /
+            </span>
+          )}
+          <a href={href} hreflang={code} class="lang-link" data-chrome-lang={code}>
+            {label}
+          </a>
+        </>
+      );
+    })
+  }
+</div>
+
+<script>
+  // Live-apply the chrome language without a reload; the LabI18n engine
+  // in Base.astro swaps every [data-i18n] string and persists the choice.
+  document.querySelectorAll<HTMLAnchorElement>('[data-chrome-lang]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      const code = a.getAttribute('data-chrome-lang');
+      if (code !== 'fa' && code !== 'en') return;
+      e.preventDefault();
+      (window as Window & { __labSetLang?: (l: string) => void }).__labSetLang?.(code);
+    });
+  });
+  document.addEventListener('astro:after-swap', () => {
+    document.querySelectorAll<HTMLAnchorElement>('[data-chrome-lang]').forEach((a) => {
+      if (a.dataset.bound) return;
+      a.dataset.bound = '1';
+      a.addEventListener('click', (e) => {
+        const code = a.getAttribute('data-chrome-lang');
+        if (code !== 'fa' && code !== 'en') return;
+        e.preventDefault();
+        (window as Window & { __labSetLang?: (l: string) => void }).__labSetLang?.(code);
+      });
+    });
+  });
+</script>
+
+<style>
+  .lang-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-inline-start: 0.5rem;
+  }
+  .lang-sep {
+    color: var(--global-text-color-light);
+    font-weight: 400;
+  }
+  .lang-link {
+    color: var(--global-text-color-light);
+    text-decoration: none;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+  }
+  .lang-link:hover {
+    color: var(--global-theme-color);
+  }
+  .lang-link[aria-current='true'] {
+    color: var(--global-theme-color);
+    background-color: color-mix(in srgb, var(--global-theme-color) 12%, transparent);
+  }
+</style>

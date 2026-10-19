@@ -1,0 +1,467 @@
+---
+import type { NavItem } from '@config/site';
+import { site } from '@config/site';
+import { getAuthors, getTitle, getVenue, getYear, parseBibtex } from '@utils/bibtex';
+import { personSlug } from '@utils/post-authors';
+import { getCollection } from 'astro:content';
+
+import bibRaw from '../../data/papers.bib?raw';
+
+const base = site.base || '';
+
+// ── Navigation items — derived from site.navbar.items (single source of truth) ─
+function flattenNav(items: NavItem[]) {
+  return items.flatMap((item) => {
+    if ('href' in item) {
+      const external = /^https?:\/\//.test(item.href);
+      return [
+        {
+          id: `nav-${item.label}`,
+          title: item.label.charAt(0).toUpperCase() + item.label.slice(1),
+          section: 'Navigation',
+          href: external ? item.href : `${base}${item.href}`,
+        },
+      ];
+    }
+    // dropdown: include each child leaf
+    return item.children.map((child) => {
+      const external = /^https?:\/\//.test(child.href);
+      return {
+        id: `nav-${child.label}`,
+        title: child.label.charAt(0).toUpperCase() + child.label.slice(1),
+        section: 'Navigation',
+        href: external ? child.href : `${base}${child.href}`,
+      };
+    });
+  });
+}
+
+const navItems = flattenNav(site.navbar.items);
+
+// ── Content items (indexed at build time for dev-mode title search) ───────────
+type SearchItem = { id: string; title: string; section: string; href: string; keywords: string };
+
+const rawPosts = (await getCollection('posts')).filter((p) => !p.data.hidden && !p.data.draft);
+
+const posts = rawPosts.map(
+  (p): SearchItem => ({
+    id: `post-${p.id}`,
+    title: p.data.title,
+    section: 'Blog Posts',
+    href: `${base}/posts/${p.id}/`,
+    keywords: [...(p.data.tags ?? []), ...(p.data.categories ?? [])].join(' '),
+  }),
+);
+
+// People index — deep-links to the member anchor on the members page.
+const people = (await getCollection('people')).map(
+  (p): SearchItem => ({
+    id: `person-${p.id}`,
+    title: [p.data.name, p.data.nameFa].filter(Boolean).join(' · '),
+    section: 'People',
+    href: `${base}/members/#${personSlug(p.id)}`,
+    keywords: [p.data.role, p.data.roleFa, ...(p.data.focus ?? [])].filter(Boolean).join(' '),
+  }),
+);
+
+// Publications index — links to detail pages.
+const publications = parseBibtex(bibRaw).map(
+  (entry): SearchItem => ({
+    id: `pub-${entry.key}`,
+    title: getTitle(entry),
+    section: 'Publications',
+    href: `${base}/publications/${entry.key}/`,
+    keywords: [getAuthors(entry), getVenue(entry), String(getYear(entry))].join(' '),
+  }),
+);
+
+const searchItems: SearchItem[] = [...posts, ...people, ...publications];
+
+// All unique tags (for `#tag` palette filtering).
+const allTags = [...new Set(rawPosts.flatMap((p) => p.data.tags ?? []))].sort();
+---
+
+<!-- ninja-keys web component -->
+<ninja-keys
+  id="ninja-search"
+  placeholder="Search or jump to…"
+  data-i18n-placeholder="searchPlaceholder"
+  hideBreadcrumbs
+  data-nav-items={JSON.stringify(navItems)}
+  data-content-items={JSON.stringify(searchItems)}
+  data-tags={JSON.stringify(allTags)}
+  data-pagefind-base={base}
+>
+  <!-- Custom footer replaces ninja-keys' English default; follows chrome language -->
+  <div slot="footer" class="nk-custom-footer">
+    <span class="nk-hint">
+      <kbd>↵</kbd>
+      <span data-i18n="searchHintSelect">to select</span>
+    </span>
+    <span class="nk-hint">
+      <kbd>↑↓</kbd>
+      <span data-i18n="searchHintNavigate">to navigate</span>
+    </span>
+    <span class="nk-hint">
+      <kbd>esc</kbd>
+      <span data-i18n="searchHintClose">to close</span>
+    </span>
+  </div>
+</ninja-keys>
+
+<script>
+  import 'ninja-keys';
+
+  import {
+    buildSearchActions,
+    installLiteralFilter,
+    matchRank,
+    pagePath,
+  } from '@utils/search-actions';
+
+  type RawItem = { id: string; title: string; section: string; href: string; keywords?: string };
+
+  function buildAction(item: RawItem) {
+    return {
+      id: item.id,
+      title: item.title,
+      section: item.section,
+      // ninja-keys only matches `title` and `keywords` when the visitor types,
+      // so a nav/content item whose title does not spell the query out (it was
+      // matched through its keywords) must keep its keywords to stay listed.
+      keywords: item.keywords,
+      // The page this entry opens, so a Pagefind hit for the same page can be
+      // dropped instead of listed twice (see `pagePath`).
+      path: pagePath(item.href),
+      handler: () => {
+        window.location.href = item.href;
+      },
+    };
+  }
+
+  function chromeLang(): string {
+    try {
+      const q = new URLSearchParams(window.location.search).get('lang');
+      if (q === 'fa' || q === 'en') return q;
+      const s = window.localStorage.getItem('lab-lang');
+      if (s === 'fa' || s === 'en') return s;
+    } catch {}
+    return document.documentElement.lang === 'fa' ? 'fa' : 'en';
+  }
+
+  function dict(): Record<string, string> {
+    const w = window as Window & {
+      __labDict?: { en: Record<string, string>; fa: Record<string, string> };
+      __labDefaultLang?: string;
+    };
+    const d = w.__labDict;
+    if (!d) return {};
+    const lang = chromeLang();
+    return (d as Record<string, Record<string, string>>)[lang] ?? d.en ?? {};
+  }
+
+  function navTitle(id: string, fallback: string): string {
+    // data ids are `nav-<label>`; dict keys are `nav_<label>`.
+    const key = `nav_${id
+      .replace(/^nav-/, '')
+      .toLowerCase()
+      .replace(/[^a-z]/g, '')}`;
+    return dict()[key] ?? fallback;
+  }
+
+  function sectionName(section: string): string {
+    const table = dict();
+    if (section === 'Navigation') return table.searchNav ?? section;
+    if (section === 'Blog Posts') return table.searchPosts ?? section;
+    if (section === 'People') return table.searchPeople ?? section;
+    if (section === 'Publications') return table.searchPublications ?? section;
+    if (section === 'Teaching') return table.searchNav ?? section;
+    return section;
+  }
+
+  function localizeItems(items: RawItem[]): RawItem[] {
+    return items.map((item) => ({
+      ...item,
+      title: item.id.startsWith('nav-') ? navTitle(item.id, item.title) : item.title,
+      section: sectionName(item.section),
+    }));
+  }
+
+  function applySearchLocale() {
+    const nk = document.querySelector('#ninja-search') as any;
+    if (!nk) return;
+    const t = dict();
+    const lang = chromeLang();
+    nk.setAttribute('dir', lang === 'fa' ? 'rtl' : 'ltr');
+    if (t.searchPlaceholder) nk.placeholder = t.searchPlaceholder;
+  }
+
+  async function initSearch() {
+    await customElements.whenDefined('ninja-keys');
+
+    const nk = document.querySelector('#ninja-search') as any;
+    if (!nk) return;
+
+    const el = nk as HTMLElement;
+    const literalFilter = installLiteralFilter(nk);
+    const navItems: RawItem[] = JSON.parse(el.dataset.navItems ?? '[]');
+    const contentItems: RawItem[] = JSON.parse(el.dataset.contentItems ?? '[]');
+    const pagefindBase = el.dataset.pagefindBase ?? '';
+    const allTags: string[] = JSON.parse(el.dataset.tags ?? '[]');
+
+    // Tag matches: `#tag` prefix or plain text — returns tag-page actions
+    // so visitors can filter by tag straight from the palette.
+    function matchTags(query: string) {
+      const needle = query.replace(/^#+/, '').trim().toLowerCase();
+      if (!needle) return [];
+      const table = dict();
+      const section = table.tagsTitle ?? 'tags';
+      return allTags
+        .filter((tag) => tag.toLowerCase().includes(needle))
+        .slice(0, 5)
+        .map((tag) => {
+          const href = `${pagefindBase}/posts/tag/${encodeURIComponent(tag)}/`;
+          return {
+            id: `tag-${tag}`,
+            title: `#${tag}`,
+            section,
+            path: pagePath(href),
+            handler: () => {
+              window.location.href = href;
+            },
+          };
+        });
+    }
+
+    const localizeAll = () => localizeItems([...navItems, ...contentItems]);
+    const splitAt = navItems.length;
+    const navData = localizeAll().slice(0, splitAt).map(buildAction);
+    const contentData = localizeAll().slice(splitAt).map(buildAction);
+
+    // Result ladder — highest intent first:
+    //   1. `#tag` shortcuts (built by `matchTags`)
+    //   2. post / publication titles      (tier 0)
+    //   3. member names                    (tier 1)
+    //   4. member roles and focuses        (tier 2)
+    //   5. the same pages reached through their metadata — tags, categories,
+    //      authors, venue, year            (tier 3)
+    //   6. Pagefind full-text body hits    (added by the caller)
+    // Each tier is sorted by match quality, capped, and the tiers share a
+    // budget so no single one can fill the palette.
+    const TIER_CAPS = [3, 3, 4, 3];
+    const LOCAL_BUDGET = 8;
+
+    function localMatches(query: string, rawQuery: string) {
+      type Row = { item: RawItem; action: ReturnType<typeof buildAction>; rank: number };
+      const tiers: Row[][] = [[], [], [], []];
+
+      contentItems.forEach((item, index) => {
+        const titleRank = matchRank(query, item.title);
+        const metadataRank = matchRank(query, item.keywords ?? '');
+        const isPerson = item.section === 'People';
+        if (titleRank !== null) {
+          tiers[isPerson ? 1 : 0].push({ item, action: contentData[index], rank: titleRank });
+        } else if (metadataRank !== null) {
+          tiers[isPerson ? 2 : 3].push({ item, action: contentData[index], rank: metadataRank });
+        }
+      });
+
+      const picked: Row[] = [];
+      tiers.forEach((tier, index) => {
+        tier.sort((a, b) => a.rank - b.rank);
+        tier.slice(0, TIER_CAPS[index]).forEach((row) => {
+          if (picked.length < LOCAL_BUDGET) picked.push(row);
+        });
+      });
+
+      const nav = navItems
+        .map((item, index) => ({ action: navData[index], rank: matchRank(query, item.title) }))
+        .filter(
+          (row): row is { action: ReturnType<typeof buildAction>; rank: number } =>
+            row.rank !== null,
+        )
+        .sort((a, b) => a.rank - b.rank)
+        .slice(0, 3)
+        .map(({ action }) => ({ ...action, keywords: rawQuery }));
+
+      return [
+        ...nav,
+        // `keywords` carries the typed text so ninja-keys' own filter keeps an
+        // entry whose words are only present in another order (`احمدی علی`).
+        ...picked.map(({ item, action }) => ({
+          ...action,
+          keywords: `${rawQuery} ${item.keywords ?? ''}`.trim(),
+        })),
+      ];
+    }
+    nk.data = navData; // show nav items while idle
+    applySearchLocale();
+
+    // Re-localize when the visitor switches languages (modal may be open).
+    window.addEventListener('lab-lang-change', () => {
+      const fresh = localizeAll();
+      nk.data = fresh.slice(0, splitAt).map(buildAction);
+      applySearchLocale();
+    });
+
+    // Open on search button click
+    document.querySelectorAll('#search-toggle').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        nk.open();
+      });
+    });
+
+    // Keyboard shortcut (Ctrl+K)
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        nk.open();
+      }
+    });
+
+    // Pagefind — lazy-loaded on first search query
+    let pagefind: any = null;
+    async function loadPagefind() {
+      if (pagefind) return pagefind;
+      try {
+        pagefind = await import(/* @vite-ignore */ `${pagefindBase}/pagefind/pagefind.js`);
+        await pagefind.init();
+      } catch {
+        pagefind = null;
+      }
+      return pagefind;
+    }
+
+    nk.addEventListener('change', async (e: CustomEvent) => {
+      // ninja-keys filters with an escaped copy of the typed text (see
+      // `installLiteralFilter`), so search the text the visitor actually typed.
+      const raw = literalFilter.query(e.detail?.search ?? '');
+      const query = raw.trim().toLowerCase();
+
+      if (!query) {
+        nk.data = navData;
+        return;
+      }
+
+      // Tag shortcuts first: `#tag` or plain text matching a tag jumps
+      // straight to the tag archive.
+      const tagActions = matchTags(query);
+      const localRows = localMatches(query, raw);
+
+      // A local entry and a Pagefind hit can describe the same page with
+      // different URLs (`/members/#slug` vs `/members/`); the first one wins,
+      // so the entry that carries the exact title and deep link is kept.
+      const seenPaths = new Set([...tagActions, ...localRows].map((action) => action.path));
+
+      // Pagefind adds the full-text hits — the words that only live in a page
+      // body. Its `keywords` carry the raw query so ninja-keys' own
+      // title/keyword filter cannot hide them again (see `search-actions.ts`).
+      let pagefindActions: ReturnType<typeof buildSearchActions> = [];
+      const pf = await loadPagefind();
+      if (pf) {
+        const response = await pf.search(query);
+        const hits = await Promise.all(response.results.slice(0, 10).map((r: any) => r.data()));
+        pagefindActions = buildSearchActions(
+          hits,
+          raw,
+          dict().searchResults ?? 'Search Results',
+        ).filter((action) => !seenPaths.has(action.path));
+      }
+
+      const combined = [...tagActions, ...localRows, ...pagefindActions];
+      nk.data = combined.length > 0 ? combined : navData;
+    });
+  }
+
+  // Sync .dark class with document theme so ninja-keys uses its built-in dark styles
+  function syncNinjaTheme() {
+    const el = document.getElementById('ninja-search');
+    if (!el) return;
+    el.classList.toggle('dark', document.documentElement.getAttribute('data-theme') === 'dark');
+  }
+
+  new MutationObserver(syncNinjaTheme).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  });
+
+  syncNinjaTheme();
+  initSearch();
+  document.addEventListener('astro:after-swap', () => {
+    syncNinjaTheme();
+    initSearch();
+  });
+</script>
+
+<style is:global>
+  /* Custom search footer (light DOM slot content — fully styleable). */
+  .nk-custom-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    align-items: center;
+    padding: 0.6rem 1rem;
+  }
+
+  .nk-custom-footer .nk-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--global-text-color-light);
+    white-space: nowrap;
+  }
+
+  .nk-custom-footer kbd {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border: 1px solid var(--global-divider-color);
+    border-radius: 4px;
+    background: var(--global-code-bg-color);
+    color: var(--global-text-color);
+  }
+
+  /* RTL search modal: mirror action list + input text. */
+  ninja-keys[dir='rtl']::part(actions-list) {
+    text-align: right;
+    /* .group-header ships with left-only padding; mirror it on the container. */
+    padding-right: 15px;
+  }
+
+  ninja-keys[dir='rtl']::part(ninja-input) {
+    text-align: right;
+  }
+
+  /* Base (light mode) theme */
+  ninja-keys {
+    --ninja-accent-color: var(--global-theme-color);
+    --ninja-text-color: var(--global-text-color);
+    --ninja-secondary-text-color: var(--global-text-color-light);
+    --ninja-secondary-background-color: var(--global-divider-color);
+    --ninja-selected-background: var(--global-theme-color);
+    --ninja-icon-color: var(--global-text-color-light);
+    --ninja-icon-size: 1rem;
+    --ninja-separate-border: 1px solid var(--global-divider-color);
+    --ninja-modal-background: var(--global-card-bg-color, var(--global-bg-color));
+    --ninja-footer-background: var(--global-bg-color);
+    --ninja-group-text-color: var(--global-text-color-light);
+    --ninja-placeholder-color: var(--global-text-color-light);
+    --ninja-z-index: 9999;
+    --ninja-modal-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    --ninja-overflow-background: rgba(0, 0, 0, 0.5);
+  }
+
+  /* Dark mode — override ninja-keys' built-in .dark defaults to match our scheme */
+  html[data-theme='dark'] ninja-keys {
+    --ninja-text-color: var(--global-text-color); /* #e0e0e0 not ninja's dim #7d7d7d */
+    --ninja-selected-text-color: var(--global-hover-text-color);
+    --ninja-accent-color: var(--global-theme-color); /* cyan, not ninja's purple */
+    --ninja-selected-background: var(--global-theme-color); /* cyan highlight */
+    --ninja-modal-background: var(--global-card-bg-color); /* #212529 */
+    --ninja-footer-background: var(--global-bg-color); /* #1c1c1d */
+    --ninja-modal-shadow: 0 16px 70px rgba(0, 0, 0, 0.5);
+    --ninja-overflow-background: rgba(0, 0, 0, 0.7);
+  }
+</style>

@@ -1,0 +1,87 @@
+---
+import { site } from '@config/site';
+import { t } from '@utils/i18n';
+
+const year = new Date().getFullYear();
+const todayIso = new Date().toISOString();
+const lastUpdated = new Date().toISOString().slice(0, 10);
+
+const isSticky = site.footer.position === 'sticky';
+const footerStyle = [
+  'background-color: var(--global-footer-bg-color);',
+  'color: var(--global-footer-text-color);',
+  'padding: 1rem 0;',
+  isSticky ? 'position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;' : 'margin-top: auto;',
+].join(' ');
+---
+
+<footer style={footerStyle}>
+  <div class="page-container text-center text-sm">
+    <p class="footer-line">
+      <span dir="ltr" class="footer-copy">
+        &copy;&nbsp;<time data-i18n-year={todayIso} style="font-variant-numeric: tabular-nums;"
+          >{year}</time
+        >
+      </span>
+      <bdi>
+        <a
+          href="https://dina-lab-iust.github.io/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="color: var(--global-theme-color); text-decoration: none; font-weight: 600;"
+        >
+          <span data-i18n="brandName">{site.author.name}</span>
+        </a>.
+      </bdi>
+      {
+        site.footer.lastUpdated && (
+          <span class="footer-updated">
+            <span data-i18n="lastUpdated">{t(site.i18n.defaultLang, 'lastUpdated')}</span>
+            <time data-i18n-date={lastUpdated}>{lastUpdated}</time>.
+          </span>
+        )
+      }
+    </p>
+    {
+      site.footer.impressum && (
+        <p class="mt-1">
+          <a
+            href={site.footer.impressum}
+            style="color: var(--global-footer-link-color); text-decoration: none;"
+            data-i18n="legalNotice"
+          >
+            {t(site.i18n.defaultLang, 'legalNotice')}
+          </a>
+        </p>
+      )
+    }
+  </div>
+</footer>
+
+<style>
+  footer a {
+    color: var(--global-footer-link-color);
+  }
+
+  footer a:hover {
+    color: var(--global-footer-text-color);
+  }
+
+  /* Uniform gaps between © block, lab name and timestamp in both directions. */
+  .footer-line {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+
+  .footer-updated {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 0.25rem;
+    margin-inline-start: 0.5rem;
+  }
+</style>

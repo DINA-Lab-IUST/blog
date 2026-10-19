@@ -1,0 +1,193 @@
+---
+import { t } from '@utils/i18n';
+
+import IconDiscord from '~icons/fa-brands/discord';
+import IconLinkedin from '~icons/fa-brands/linkedin';
+import IconTelegram from '~icons/fa-brands/telegram';
+import IconWhatsapp from '~icons/fa-brands/whatsapp';
+import IconEnvelope from '~icons/fa-solid/envelope';
+import IconShareAlt from '~icons/fa-solid/share-alt';
+
+interface Props {
+  title: string;
+  url: string;
+  description?: string;
+  lang?: string;
+}
+
+const { title, url, description = '', lang = 'en' } = Astro.props;
+
+const enc = {
+  url: encodeURIComponent(url),
+  title: encodeURIComponent(title),
+  description: encodeURIComponent(description),
+};
+
+/** X brand mark path — inline SVG because the installed icon set predates it. */
+const X_PATH =
+  'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644Z';
+
+const shareLinks = [
+  {
+    name: 'X',
+    href: `https://twitter.com/intent/tweet?text=${enc.title}&url=${enc.url}`,
+    Icon: null,
+  },
+  {
+    name: 'LinkedIn',
+    href: `https://www.linkedin.com/shareArticle?mini=true&url=${enc.url}&title=${enc.title}`,
+    Icon: IconLinkedin,
+  },
+  {
+    name: 'Telegram',
+    href: `https://t.me/share/url?url=${enc.url}&text=${enc.title}`,
+    Icon: IconTelegram,
+  },
+  {
+    name: 'WhatsApp',
+    href: `https://wa.me/?text=${enc.title}%20${enc.url}`,
+    Icon: IconWhatsapp,
+  },
+  {
+    name: 'Discord',
+    href: `https://discord.com/channels/@me`,
+    Icon: IconDiscord,
+    copyLink: true,
+  },
+  {
+    name: 'Email',
+    href: `mailto:?subject=${enc.title}&body=${enc.description}%0A%0A${enc.url}`,
+    Icon: IconEnvelope,
+  },
+];
+---
+
+<div class="social-share">
+  <p class="share-label">{t(lang, 'share')}</p>
+  <div class="share-icons">
+    {
+      shareLinks.map(({ name, href, Icon, copyLink }) =>
+        copyLink ? (
+          <button
+            type="button"
+            class="share-link share-copy"
+            data-copy-url={url}
+            aria-label={`${t(lang, 'shareOn')} ${name}`}
+            title={`${t(lang, 'shareOn')} ${name}`}
+          >
+            <Icon aria-hidden="true" />
+          </button>
+        ) : (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${t(lang, 'shareOn')} ${name}`}
+            title={`${t(lang, 'shareOn')} ${name}`}
+            class="share-link"
+          >
+            {Icon ? (
+              <Icon aria-hidden="true" />
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+                style="width: 1em; height: 1em;"
+              >
+                <path d={X_PATH} />
+              </svg>
+            )}
+          </a>
+        ),
+      )
+    }
+    <button
+      id="native-share-btn"
+      aria-label={t(lang, 'shareViaDevice')}
+      title={t(lang, 'shareViaDevice')}
+      class="share-link share-native"
+      hidden
+    >
+      <IconShareAlt aria-hidden="true" />
+    </button>
+  </div>
+</div>
+
+<script
+  define:vars={{
+    shareTitle: title,
+    shareUrl: url,
+    shareText: description,
+    copyLabel: t(lang, 'shareCopy'),
+    copiedLabel: t(lang, 'shareCopied'),
+  }}
+>
+  const btn = document.getElementById('native-share-btn');
+  if (navigator.share && btn) {
+    btn.hidden = false;
+    btn.addEventListener('click', () => {
+      navigator.share({ title: shareTitle, url: shareUrl, text: shareText }).catch(() => {});
+    });
+  }
+
+  // Discord has no web share intent — the button copies the post link instead.
+  document.querySelectorAll('.share-copy').forEach((copyBtn) => {
+    copyBtn.addEventListener('click', async () => {
+      const link = copyBtn.getAttribute('data-copy-url');
+      if (!link) return;
+      try {
+        await navigator.clipboard.writeText(link);
+      } catch {
+        return;
+      }
+      copyBtn.classList.add('copied');
+      copyBtn.setAttribute('aria-label', copiedLabel);
+      setTimeout(() => {
+        copyBtn.classList.remove('copied');
+        copyBtn.setAttribute('aria-label', copyLabel);
+      }, 2000);
+    });
+  });
+</script>
+
+<style>
+  .social-share {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--global-divider-color);
+  }
+
+  .share-label {
+    font-size: 0.875rem;
+    color: var(--global-text-color-light);
+    margin-bottom: 0.5rem;
+  }
+
+  .share-icons {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .share-link {
+    color: var(--global-text-color-light);
+    font-size: 1.1rem;
+    line-height: 1;
+    text-decoration: none;
+    transition: color 0.15s ease;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .share-link:hover {
+    color: var(--global-theme-color);
+  }
+
+  .share-link.copied {
+    color: var(--global-theme-color);
+  }
+</style>

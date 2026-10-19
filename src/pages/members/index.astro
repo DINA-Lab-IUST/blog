@@ -1,0 +1,140 @@
+---
+import PersonCard from '@components/PersonCard.astro';
+import { site } from '@config/site';
+import Page from '@layouts/Page.astro';
+import { withBase } from '@utils/base';
+import { personSlug } from '@utils/post-authors';
+import { getCollection } from 'astro:content';
+
+const all = await getCollection('people');
+const byImportance = (a: (typeof all)[number], b: (typeof all)[number]) =>
+  (a.data.importance ?? 999) - (b.data.importance ?? 999);
+const supervisors = all.filter((p) => p.data.group === 'supervisor').sort(byImportance);
+const current = all.filter((p) => p.data.group === 'current').sort(byImportance);
+const alumni = all.filter((p) => p.data.group === 'alumni').sort(byImportance);
+---
+
+<Page title="Members" description={`Research group members of ${site.author.name}`}>
+  <header class="post-header">
+    <h1 class="post-title" data-i18n="peopleTitle">Members</h1>
+  </header>
+
+  {
+    supervisors.length > 0 && (
+      <section class="mb-10">
+        <h2
+          class="mb-6 text-xl font-bold"
+          style="color: var(--global-theme-color); border-bottom: 1px solid var(--global-divider-color); padding-bottom: 0.25rem;"
+          data-i18n="supervisorTitle"
+        >
+          Supervisor
+        </h2>
+        <div class="grid gap-6">
+          {supervisors.map((person) => (
+            <div class="member-anchor" id={personSlug(person.id)}>
+              <PersonCard person={person} lead={true} horizontal={true} />
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    current.length > 0 && (
+      <section class="mb-10">
+        <h2
+          class="mb-6 text-xl font-bold"
+          style="color: var(--global-theme-color); border-bottom: 1px solid var(--global-divider-color); padding-bottom: 0.25rem;"
+          data-i18n="membersTitle"
+        >
+          Members
+        </h2>
+        <div class="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {current.map((person) => (
+            <div class="member-anchor" id={personSlug(person.id)}>
+              <PersonCard person={person} />
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    alumni.length > 0 && (
+      <section class="mb-10">
+        <h2
+          class="mb-6 text-xl font-bold"
+          style="color: var(--global-theme-color); border-bottom: 1px solid var(--global-divider-color); padding-bottom: 0.25rem;"
+          data-i18n="alumni"
+        >
+          Alumni
+        </h2>
+        <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          {alumni.map((person) => (
+            <div class="member-anchor flex items-center gap-3" id={personSlug(person.id)}>
+              {person.data.photo && (
+                <img
+                  src={withBase(person.data.photo)}
+                  alt={person.data.name}
+                  loading="lazy"
+                  width="48"
+                  height="48"
+                  style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0;"
+                />
+              )}
+              <div>
+                <p class="who-en text-sm font-semibold" style="color: var(--global-theme-color);">
+                  {person.data.website ? (
+                    <a
+                      href={person.data.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style="color: inherit; text-decoration: none;"
+                    >
+                      {person.data.name}
+                    </a>
+                  ) : (
+                    person.data.name
+                  )}
+                </p>
+                {person.data.nameFa && (
+                  <p
+                    class="who-fa text-sm font-semibold"
+                    lang="fa"
+                    dir="rtl"
+                    style="color: var(--global-theme-color);"
+                  >
+                    {person.data.nameFa}
+                  </p>
+                )}
+                <p class="who-en text-xs" style="color: var(--global-text-color-light);">
+                  {person.data.role}
+                </p>
+                {person.data.roleFa && (
+                  <p
+                    class="who-fa text-xs"
+                    lang="fa"
+                    dir="rtl"
+                    style="color: var(--global-text-color-light);"
+                  >
+                    {person.data.roleFa}
+                  </p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    all.length === 0 && (
+      <p style="color: var(--global-text-color-light);" data-i18n="noPeople">
+        No people entries yet.
+      </p>
+    )
+  }
+</Page>

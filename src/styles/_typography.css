@@ -1,0 +1,167 @@
+/*
+ * Typography — Manrope for Latin body, Space Grotesk for Latin display,
+ * Vazirmatn for Persian, JetBrains Mono for code.
+ * Fonts are self-hosted via Fontsource (see global.css @font-face rules).
+ */
+
+@theme {
+  --font-sans: 'Manrope', 'Vazirmatn', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Space Grotesk', 'Manrope', 'Vazirmatn', system-ui, sans-serif;
+  --font-fa: 'Vazirmatn', 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-condensed: 'Manrope', 'Arial Narrow', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+}
+
+/* ─── Base typography ────────────────────────────────────────────────────── */
+
+html {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* No blinking text cursor on read-only content — clicking a paragraph used to
+     leave a ticking orange caret. Typing fields keep a real caret. */
+  caret-color: transparent;
+}
+
+input,
+textarea,
+select,
+[contenteditable='true'] {
+  caret-color: auto;
+}
+
+/* The search palette renders inside a shadow root — re-enable its caret so
+   typing stays visible even though read-only content hides the caret. */
+ninja-keys {
+  caret-color: auto;
+}
+
+/* Persian content uses Vazirmatn with adjusted line-height for readability. */
+html[lang='fa'],
+[lang='fa'],
+[dir='rtl'] {
+  font-family: var(--font-fa);
+}
+
+[dir='rtl'] body,
+[dir='rtl'] article,
+[dir='rtl'] .prose {
+  line-height: 2;
+  letter-spacing: 0 !important;
+}
+
+body {
+  color: var(--global-text-color);
+  background:
+    radial-gradient(circle at 12% 4%, rgba(243, 107, 18, 0.16), transparent 26rem),
+    radial-gradient(circle at 87% 28%, rgba(41, 91, 128, 0.15), transparent 33rem),
+    radial-gradient(circle at 50% 100%, rgba(226, 182, 87, 0.1), transparent 30rem),
+    linear-gradient(180deg, #fffdf9 0%, var(--global-bg-color) 30%, var(--global-bg-color) 100%);
+  background-attachment: fixed;
+}
+
+html[data-theme='dark'] body {
+  background:
+    radial-gradient(circle at 12% 4%, rgba(255, 122, 24, 0.13), transparent 26rem),
+    radial-gradient(circle at 87% 28%, rgba(42, 97, 143, 0.16), transparent 33rem),
+    var(--global-bg-color);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: var(--global-theme-color);
+  color: #fff;
+}
+
+/* Headings use the display face in Latin, Vazirmatn in Persian. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 66px; /* offset for fixed navbar */
+}
+
+[dir='rtl'] h1,
+[dir='rtl'] h2,
+[dir='rtl'] h3,
+[dir='rtl'] h4,
+[dir='rtl'] h5,
+[dir='rtl'] h6 {
+  font-family: var(--font-fa);
+  line-height: 1.6;
+}
+
+/* Links */
+a {
+  color: var(--global-theme-color);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--global-hover-color);
+}
+
+/* Code — always JetBrains Mono, always LTR */
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+code:not(pre code) {
+  background-color: var(--global-code-bg-color);
+  border-radius: 3px;
+  padding: 0.1em 0.3em;
+}
+
+/* Code blocks, math, and diagrams stay LTR even inside RTL pages. */
+pre,
+pre code,
+.astro-code,
+.katex,
+.katex-display,
+.math-display,
+.mermaid,
+.language-mermaid {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+}
+
+[dir='rtl'] pre {
+  text-align: left;
+}
+
+/* Blockquotes */
+blockquote {
+  border-left: 5px solid var(--global-theme-color);
+  padding: 10px 30px;
+  color: var(--global-text-color-light);
+  font-style: italic;
+  font-size: 1.15rem;
+  background: var(--global-bg-color);
+  margin: 1.5rem 0;
+}
+
+[dir='rtl'] blockquote {
+  border-left: none;
+  border-right: 5px solid var(--global-theme-color);
+}
+
+/* Horizontal rule */
+hr {
+  border: none;
+  border-top: 1px solid var(--global-divider-color);
+  margin: 2rem 0;
+}

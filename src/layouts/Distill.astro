@@ -1,0 +1,298 @@
+---
+import PostMeta from '@components/blog/PostMeta.astro';
+import PostRefs from '@components/blog/PostRefs.astro';
+import ReadingProgress from '@components/ReadingProgress.astro';
+import TOC from '@components/TOC.astro';
+import { site } from '@config/site';
+import { dirForLang, normalizeLang, t } from '@utils/i18n';
+import { authorDisplayName, resolvePostAuthors } from '@utils/post-authors';
+import { readingTime as calcReadingTime } from '@utils/reading-time';
+import type { MarkdownHeading } from 'astro';
+import type { CollectionEntry } from 'astro:content';
+
+import Base from './Base.astro';
+
+interface Props {
+  post: CollectionEntry<'posts'>;
+  headings?: MarkdownHeading[];
+}
+
+const { post, headings = [] } = Astro.props;
+const {
+  title,
+  description,
+  date,
+  tags = [],
+  categories = [],
+  robots,
+  draft = false,
+  lang: rawLang,
+  authors: authorSlugs = [],
+} = post.data;
+const effectiveRobots = draft ? 'noindex, nofollow' : robots;
+const lang = normalizeLang(rawLang);
+const dir = dirForLang(lang);
+const linkedAuthors = await resolvePostAuthors(authorSlugs);
+
+// Access distill-specific fields via type cast (added to schema in content.config.ts)
+const postData = post.data as typeof post.data & {
+  distillAuthors?: Array<{
+    name: string;
+    url?: string;
+    affiliations?: { name: string };
+  }>;
+  bibliography?: string;
+};
+
+const authors = postData.distillAuthors ?? [];
+const rt = post.body ? calcReadingTime(post.body) : 1;
+---
+
+<Base
+  title={title}
+  description={description}
+  robots={effectiveRobots}
+  lang={lang}
+  dir={dir}
+  contentDir={dir}
+>
+  {site.features.progressBar && <ReadingProgress />}
+
+  <!-- Distill layout follows the POST language, not the site chrome language. -->
+  <div class="distill-page-container py-8" lang={lang} dir={dir}>
+    <div class="mx-auto flex max-w-5xl gap-8 px-4">
+      <!-- TOC sidebar (desktop only) -->
+      {
+        headings.length > 0 && (
+          <aside class="hidden w-52 flex-shrink-0 lg:block">
+            <TOC headings={headings} lang={lang} />
+          </aside>
+        )
+      }
+
+      <!-- Main distill article -->
+      <article class="distill-article min-w-0 flex-1" lang={lang} dir={dir}>
+        <!-- Breadcrumb -->
+        <nav aria-label="Breadcrumb" class="breadcrumb-nav">
+          <a href={`${site.base}/`} class="breadcrumb-link">
+            <span class="back-arrow" aria-hidden="true">←</span>{' '}
+            <span>{t(lang, 'backToBlog')}</span>
+          </a>
+        </nav>
+
+        <!-- Distill-style header -->
+        <header
+          class="distill-header mb-8 border-b pb-6"
+          style="border-color: var(--global-divider-color);"
+        >
+          <h1 class="distill-title">
+            {title}
+          </h1>
+
+          {description && <p class="distill-description">{description}</p>}
+
+          <!-- Authors block -->
+          {
+            authors.length > 0 && (
+              <div class="distill-authors">
+                {authors.map((author) => (
+                  <div class="distill-author-block">
+                    <span class="distill-author-name">
+                      {author.url ? (
+                        <a href={author.url} target="_blank" rel="noopener noreferrer">
+                          {author.name}
+                        </a>
+                      ) : (
+                        author.name
+                      )}
+                    </span>
+                    {author.affiliations?.name && (
+                      <span class="distill-affiliation">{author.affiliations.name}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          }
+
+          <PostMeta date={date} tags={tags} categories={categories} readingTime={rt} lang={lang} />
+          {
+            linkedAuthors.length > 0 && (
+              <p class="post-authors">
+                <span class="post-authors-label">
+                  {t(lang, linkedAuthors.length > 1 ? 'byMany' : 'by')}
+                </span>{' '}
+                {linkedAuthors.map((author, i) => (
+                  <>
+                    {i > 0 && <span aria-hidden="true"> · </span>}
+                    {author.href ? (
+                      <a href={author.href} class="post-author-link">
+                        {authorDisplayName(author, lang)}
+                      </a>
+                    ) : (
+                      <span>{authorDisplayName(author, lang)}</span>
+                    )}
+                  </>
+                ))}
+              </p>
+            )
+          }
+        </header>
+
+        <!-- Article body — Distill-styled prose -->
+        <div class="distill-content prose max-w-none" id="distill-post-content">
+          <slot />
+        </div>
+
+        <!-- Manual cross-references -->
+        <PostRefs refs={post.data.refs ?? []} lang={lang} />
+      </article>
+    </div>
+  </div>
+
+  <!-- Load distillpub scripts at end of body so custom elements upgrade -->
+  <script is:inline src={`${import.meta.env.BASE_URL}assets/js/distillpub/template.v2.js`}></script>
+  <script is:inline src={`${import.meta.env.BASE_URL}assets/js/distillpub/transforms.v2.js`}
+  ></script>
+  <script is:inline src={`${import.meta.env.BASE_URL}assets/js/distillpub/overrides.js`}></script>
+</Base>
+
+<!-- Code copy button — shared helper keeps the button outside the scrolling
+     <pre> so it never slides away on narrow screens. -->
+<script>
+  import { addCopyButtons } from '@utils/copy-buttons';
+
+  document.addEventListener('astro:page-load', () => {
+    addCopyButtons(document, '#distill-post-content pre');
+  });
+</script>
+
+<style>
+  /* ── Distill-inspired article styles ── */
+
+  .distill-title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+    color: var(--global-text-color);
+    font-family: var(--font-sans);
+  }
+
+  .distill-description {
+    font-size: 1.15rem;
+    color: var(--global-text-color-light);
+    margin-bottom: 1.25rem;
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .distill-authors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .distill-author-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .distill-author-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--global-text-color);
+  }
+
+  .distill-author-name a {
+    color: var(--global-theme-color);
+    text-decoration: none;
+  }
+
+  .distill-author-name a:hover {
+    text-decoration: underline;
+  }
+
+  .distill-affiliation {
+    font-size: 0.8rem;
+    color: var(--global-text-color-light);
+  }
+
+  /* Distill content — enhanced prose for academic style */
+  .distill-content {
+    font-size: 1rem;
+    line-height: 1.8;
+    color: var(--global-text-color);
+  }
+
+  /* Section headers with Distill-style left border accent */
+  .distill-content :global(h2) {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--global-divider-color);
+    color: var(--global-text-color);
+  }
+
+  .distill-content :global(h3) {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    color: var(--global-text-color);
+  }
+
+  /* Block quotes styled as Distill aside panels */
+  .distill-content :global(blockquote) {
+    border-left: 3px solid var(--global-theme-color);
+    background-color: var(--global-card-bg-color);
+    padding: 1rem 1.25rem;
+    border-radius: 0 6px 6px 0;
+    margin: 1.5rem 0;
+    font-style: italic;
+    color: var(--global-text-color-light);
+  }
+
+  /* Distill note/callout helper class — use in MDX as <div class="distill-note"> */
+  .distill-content :global(.distill-note) {
+    background-color: var(--global-card-bg-color);
+    border: 1px solid var(--global-divider-color);
+    border-left: 4px solid var(--global-theme-color);
+    padding: 1rem 1.25rem;
+    border-radius: 0 6px 6px 0;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+
+  /* Breadcrumb — mirrors Post.astro styling via global CSS, scoped here for the distill layout */
+  .breadcrumb-nav {
+    margin-bottom: 1rem;
+  }
+
+  .breadcrumb-link {
+    font-size: 0.875rem;
+    color: var(--global-text-color-light);
+    text-decoration: none;
+  }
+
+  .breadcrumb-link:hover {
+    color: var(--global-theme-color);
+  }
+
+  /* distillpub template.v2.js injects its own <style id="distill-prerendered-styles"> into
+     <head> which includes Prism.js rules (color:black on code[class*="language-"]) and
+     d-article aside (color:rgba(0,0,0,0.6)). Override any leaked hardcoded colours inside
+     our distill content area so text is always readable in dark mode. */
+  :global(html[data-theme='dark']) .distill-article {
+    color: var(--global-text-color);
+  }
+
+  :global(html[data-theme='dark']) .distill-content :global(code),
+  :global(html[data-theme='dark']) .distill-content :global(pre) {
+    color: inherit;
+  }
+</style>

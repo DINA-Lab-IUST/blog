@@ -1,0 +1,33 @@
+---
+import Base from './Base.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  noindex?: boolean;
+  lang?: string;
+  dir?: 'rtl' | 'ltr';
+  /** Direction of the page's single content zone (see Base.astro). */
+  contentDir?: 'rtl' | 'ltr';
+}
+
+const { title, description, image, noindex, lang, dir, contentDir } = Astro.props;
+---
+
+<Base
+  title={title}
+  description={description}
+  image={image}
+  noindex={noindex}
+  lang={lang}
+  dir={dir}
+  contentDir={contentDir}
+>
+  <slot name="head" slot="head" />
+  <!-- `dir` is only set by English-only content pages (publications); when
+       omitted the container follows the site chrome language. -->
+  <div class="page-container py-8" dir={dir}>
+    <slot />
+  </div>
+</Base>

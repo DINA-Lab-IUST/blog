@@ -1,0 +1,242 @@
+---
+import { site } from '@config/site';
+import { formatCount, formatPostDate, normalizeLang, t } from '@utils/i18n';
+import { authorDisplayName, resolvePostAuthors } from '@utils/post-authors';
+import { postBannerImage } from '@utils/post-image';
+import { readingTime } from '@utils/reading-time';
+import type { CollectionEntry } from 'astro:content';
+
+import IconCalendar from '~icons/fa-solid/calendar';
+import IconHashtag from '~icons/fa-solid/hashtag';
+import IconTag from '~icons/fa-solid/tag';
+import IconUser from '~icons/fa-solid/user';
+
+/** A local post from the 'posts' collection. */
+type LocalPost = CollectionEntry<'posts'>;
+
+/** A synthetic external post object (constructed in blog listing pages). */
+interface ExternalPost {
+  external: true;
+  id: string;
+  url: string;
+  data: {
+    title: string;
+    date: Date;
+    description?: string;
+    tags: string[];
+    categories: string[];
+    image?: string;
+  };
+  body?: undefined;
+}
+
+type PostEntry = LocalPost | ExternalPost;
+
+interface Props {
+  post: PostEntry;
+}
+
+const { post } = Astro.props;
+
+const isExternal = 'external' in post && post.external === true;
+
+const title = post.data.title;
+const date = post.data.date;
+const description = post.data.description;
+const tags = post.data.tags ?? [];
+const categories = post.data.categories ?? [];
+const rawLang = (post.data as { lang?: string }).lang;
+const lang = normalizeLang(rawLang);
+const dir = lang === 'fa' ? 'rtl' : 'ltr';
+// Banner: author image first, deterministic on-brand fallback otherwise
+// (a thumbnail is never empty — every card gets a visual).
+const thumbnail = (post.data as { image?: string }).image;
+const banner = postBannerImage(post.id, thumbnail);
+
+const authorSlugs = !isExternal ? ((post as LocalPost).data.authors ?? []) : [];
+
+// Resolve author display names via the people collection (single source of truth).
+const authorLinks = await resolvePostAuthors(authorSlugs);
+
+const href = isExternal ? (post as ExternalPost).url : `${site.base}/posts/${post.id}/`;
+
+const minutes =
+  !isExternal && (post as LocalPost).body ? readingTime((post as LocalPost).body!) : undefined;
+
+const d = date instanceof Date ? date : new Date(date);
+const formattedDate = formatPostDate(d, lang);
+const year = d.getFullYear();
+---
+
+<div class="post-row" lang={lang} dir={dir}>
+  {
+    /* Glass visual at the inline-start — always filled: author thumbnail
+      or deterministic on-brand fallback. Fades toward the title (mask). */
+  }
+  <a
+    class="post-visual"
+    href={href}
+    aria-label={title}
+    tabindex="-1"
+    {...isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {}}
+  >
+    <img class="only-light" src={banner.light} alt="" loading="lazy" />
+    <img class="only-dark" src={banner.dark} alt="" loading="lazy" />
+  </a>
+
+  <div class="post-body">
+    <h3>
+      <a
+        class="post-title"
+        href={href}
+        {...isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {}}
+      >
+        {title}
+        {
+          isExternal && (
+            <span style="font-size: 0.7em; opacity: 0.6; margin-left: 0.25em;">&#x2197;</span>
+          )
+        }
+      </a>
+    </h3>
+    {description && <p>{description}</p>}
+    <p class="post-meta">
+      {
+        minutes && (
+          <>
+            <span>{t(lang, 'minReadN').replace('{n}', formatCount(minutes, lang))}</span>{' '}
+            &nbsp;&middot;&nbsp;{' '}
+          </>
+        )
+      }
+      <time datetime={d.toISOString()}>
+        {formattedDate}
+      </time>
+      {
+        authorLinks.length > 0 && (
+          <>
+            &nbsp;&middot;&nbsp;
+            <span class="post-card-authors">
+              <IconUser />
+              &nbsp;
+              {authorLinks.map((author, i) => (
+                <>
+                  {i > 0 && <span>, </span>}
+                  {author.href ? (
+                    <a href={author.href}>{authorDisplayName(author, lang)}</a>
+                  ) : (
+                    <span>{authorDisplayName(author, lang)}</span>
+                  )}
+                </>
+              ))}
+            </span>
+          </>
+        )
+      }
+    </p>
+    <p class="post-tags">
+      <a href={`${site.base}/`}>
+        <IconCalendar />
+        &nbsp;{year}
+      </a>
+      {
+        tags.map((tag) => (
+          <>
+            &nbsp;&middot;&nbsp;
+            <a href={`${site.base}/posts/tag/${tag}/`}>
+              <IconHashtag />
+              &nbsp;{tag}
+            </a>
+          </>
+        ))
+      }
+      {
+        categories.map((cat) => (
+          <>
+            &nbsp;&middot;&nbsp;
+            <a href={`${site.base}/posts/category/${cat}/`}>
+              <IconTag />
+              &nbsp;{cat}
+            </a>
+          </>
+        ))
+      }
+    </p>
+  </div>
+</div>
+
+<style>
+  .post-row {
+    display: flex;
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+
+  /* Glass visual block at the inline-start of the row (right side in RTL).
+     With a thumbnail it shows the image; otherwise it is pure glass.
+     The inline-end edge dissolves toward the title text. */
+  .post-visual {
+    position: relative;
+    flex: 0 0 168px;
+    min-height: 136px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--global-divider-color);
+    background:
+      radial-gradient(circle at 30% 20%, rgba(255, 122, 24, 0.16), transparent 60%),
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--global-theme-color) 14%, transparent),
+        color-mix(in srgb, var(--global-theme-color) 3%, transparent)
+      ),
+      var(--global-card-bg-color);
+    -webkit-mask-image: linear-gradient(to right, black 55%, transparent 98%);
+    mask-image: linear-gradient(to right, black 55%, transparent 98%);
+  }
+
+  [dir='rtl'] .post-visual {
+    -webkit-mask-image: linear-gradient(to left, black 55%, transparent 98%);
+    mask-image: linear-gradient(to left, black 55%, transparent 98%);
+  }
+
+  .post-visual img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+
+  .post-row:hover .post-visual img {
+    transform: scale(1.05);
+  }
+
+  .post-body {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .post-body h3 {
+    margin-top: 0;
+  }
+
+  @media (max-width: 576px) {
+    .post-row {
+      flex-direction: column;
+    }
+
+    .post-visual {
+      flex-basis: auto;
+      min-height: 150px;
+    }
+
+    /* Stacked layout: the visual now sits above the text, so dissolve its
+       bottom edge — the inline-edge fade only makes sense beside the title. */
+    .post-visual,
+    [dir='rtl'] .post-visual {
+      -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+      mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+    }
+  }
+</style>

@@ -1,0 +1,652 @@
+---
+import PostMeta from '@components/blog/PostMeta.astro';
+import PostRefs from '@components/blog/PostRefs.astro';
+import RelatedPosts from '@components/blog/RelatedPosts.astro';
+import SocialShare from '@components/blog/SocialShare.astro';
+import Giscus from '@components/Giscus.astro';
+import Newsletter from '@components/Newsletter.astro';
+import ReadingProgress from '@components/ReadingProgress.astro';
+import TOC from '@components/TOC.astro';
+import { site } from '@config/site';
+import { dirForLang, formatPostDate, normalizeLang, t } from '@utils/i18n';
+import { authorDisplayName, resolvePostAuthors } from '@utils/post-authors';
+import { postBannerImage } from '@utils/post-image';
+import { relatedPosts } from '@utils/posts';
+import { readingTime as calcReadingTime } from '@utils/reading-time';
+import type { MarkdownHeading } from 'astro';
+import type { CollectionEntry } from 'astro:content';
+import { getCollection } from 'astro:content';
+
+import Base from './Base.astro';
+
+interface Props {
+  post: CollectionEntry<'posts'>;
+  headings?: MarkdownHeading[];
+}
+
+const { post, headings = [] } = Astro.props;
+const {
+  title, description, date, lastmod, tags = [], categories = [],
+  lang: rawLang, authors: authorSlugs = [],
+  robots, draft = false,
+  mermaid = false, chart_js = false, echarts = false, vega = false, plotly = false,
+  pseudocode = false, typograms = false, tikzjax = false, map = false,
+  img_comparison = false, code_diff = false, gallery = false, disqus = false,
+} = post.data;
+
+const lang = normalizeLang(rawLang);
+const dir = dirForLang(lang);
+const postAuthors = await resolvePostAuthors(authorSlugs);
+
+const effectiveRobots = draft ? 'noindex, nofollow' : robots;
+
+const lastmodFormatted = lastmod ? formatPostDate(lastmod, lang) : null;
+
+const rt = post.body ? calcReadingTime(post.body, site.blog.wordsPerMinute) : 1;
+
+// Related posts (if post has tags)
+const allPosts = await getCollection('posts');
+const related = post.data.relatedPosts ? relatedPosts(post, allPosts) : [];
+
+// JSON-LD BlogPosting schema
+const canonicalURL = new URL(`${site.base}/posts/${post.id}/`, site.url).toString();
+
+// Generated OG image (falls back to static og.image if post has its own cover)
+const ogImagePath = post.data.image
+  ? new URL(post.data.image, site.url).toString()
+  : new URL(`${site.base}/og/posts/${post.id}.png`, site.url).toString();
+
+const authorNames = postAuthors.length > 0 ? postAuthors.map((a) => a.name) : [site.author.name];
+const hero = postBannerImage(post.id, post.data.image);
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: title,
+  ...(description ? { description } : {}),
+  datePublished: date.toISOString(),
+  ...(lastmod ? { dateModified: lastmod.toISOString() } : {}),
+  url: canonicalURL,
+  inLanguage: lang,
+  author: authorNames.map((name) => ({
+    '@type': 'Person',
+    name,
+  })),
+  image: ogImagePath,
+};
+---
+
+<Base
+  title={title}
+  description={description}
+  robots={effectiveRobots}
+  image={ogImagePath}
+  lang={lang}
+  dir={dir}
+  contentDir={dir}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    <script
+      type="application/ld+json"
+      set:html={JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Blog',
+            item: new URL(`${site.base}/`, site.url).toString(),
+          },
+          { '@type': 'ListItem', position: 2, name: title, item: canonicalURL },
+        ],
+      })}
+    />
+
+    {vega && (
+      <>
+        {/* Preconnect to CDN to start TCP/TLS handshake early — reduces first-load
+            latency for the three vega scripts (~1.6 MB total). */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        {/* is:inline prevents Astro from bundling external URLs as `import"url"`.
+            defer in <head> gives spec-guaranteed execution order: vega → vega-lite →
+            vega-embed. vega-embed reads window.vega and window.vegaLite synchronously
+            at execution time, so strict ordering is required. Scripts placed after
+            </html> are in the browser's error-recovery zone where defer order is NOT
+            guaranteed — that's why these must live in <head>. */}
+        <script is:inline
+          src="https://cdn.jsdelivr.net/npm/vega@5"
+          integrity="sha384-NMXhl2TbCXxcN7o4ROC56Funm78m4AylL8gMg/7Kn4YU+wrm23K9l7cY8lDRXQ9d"
+          crossorigin="anonymous"
+          defer></script>
+        <script is:inline
+          src="https://cdn.jsdelivr.net/npm/vega-lite@5"
+          integrity="sha384-D9LYH0esGjcxQJsBuxOuXtCDJGXRWW1+KhluzWPqi0rLJmiR/ygPChefaD+rFFDQ"
+          crossorigin="anonymous"
+          defer></script>
+        <script is:inline
+          src="https://cdn.jsdelivr.net/npm/vega-embed@6"
+          integrity="sha384-M+Ax7e/WFJpxSOF09HzI+Sj4wg9ottVd/uxmV2ItGGh02fLH28t2FAOJx3TJBap5"
+          crossorigin="anonymous"
+          defer></script>
+      </>
+    )}
+
+    {tikzjax && (
+      <>
+        {/* Preconnect to tikzjax.com to start TCP/TLS handshake before the large
+            tikzjax.js bundle (~several hundred KB) and WASM (~2 MB) download. */}
+        <link rel="preconnect" href="https://tikzjax.com" crossorigin />
+        {/* tikzjax.js is a synchronous IIFE (webpack bundle) with no DOMContentLoaded
+            or readyState logic — it scans for <script type="text/tikz"> elements
+            immediately when it executes. It MUST run with defer so that the full document
+            (including the body tikz elements) is already in the DOM at execution time.
+            Without defer the script runs in <head> before the body is parsed and finds
+            no tikz elements. The astro:after-swap handler below re-injects it for
+            View Transitions navigations where the head script does not re-execute. */}
+        <link rel="stylesheet" href="https://tikzjax.com/v1/fonts.css" />
+        <script is:inline src="https://tikzjax.com/v1/tikzjax.js" defer></script>
+      </>
+    )}
+  </Fragment>
+  {site.features.progressBar && <ReadingProgress />}
+
+  <!-- Post layout follows the POST language, not the site chrome language:
+       the sidebar/content order must not flip when the visitor switches. -->
+  <div class="page-container py-8" lang={lang} dir={dir}>
+    <div class="flex gap-8">
+      <!-- TOC sidebar (desktop only) -->
+      {
+        headings.length > 0 && (
+          <aside class="hidden lg:block w-52 flex-shrink-0">
+            <TOC headings={headings} lang={lang} />
+          </aside>
+        )
+      }
+
+      <!-- Post content -->
+      <article class="flex-1 min-w-0" lang={lang} dir={dir}>
+        <!-- Hidden metadata for pagefind structured search -->
+        <span data-pagefind-meta="date" style="display:none">{date.toISOString().slice(0, 10)}</span>
+        <span data-pagefind-meta="lang" style="display:none">{lang}</span>
+
+        <!-- Breadcrumb -->
+        <nav aria-label="Breadcrumb" class="breadcrumb-nav">
+          <a href={`${site.base}/`} class="breadcrumb-link">
+            <span class="back-arrow" aria-hidden="true">←</span>{' '}
+            <span>{t(lang, 'backToBlog')}</span>
+          </a>
+        </nav>
+
+        <!-- Header -->
+        <header class="post-header">
+          <h1 class="post-title" style="margin-bottom: 0.75rem;" data-pagefind-weight="10">
+            {title}
+          </h1>
+
+          {
+            postAuthors.length > 0 && (
+              <p class="post-authors">
+                <span class="post-authors-label">
+                  {t(lang, postAuthors.length > 1 ? 'byMany' : 'by')}
+                </span>{' '}
+                {postAuthors.map((author, i) => (
+                  <>
+                    {i > 0 && <span aria-hidden="true"> · </span>}
+                    {author.href ? (
+                      <a href={author.href} class="post-author-link">
+                        {authorDisplayName(author, lang)}
+                      </a>
+                    ) : (
+                      <span>{authorDisplayName(author, lang)}</span>
+                    )}
+                  </>
+                ))}
+              </p>
+            )
+          }
+
+          <PostMeta date={date} tags={tags} categories={categories} readingTime={rt} lang={lang} />
+          {lastmodFormatted && (
+            <p class="post-lastmod" style="font-size: 0.8rem; color: var(--global-text-color-light); margin-top: 0.25rem;">
+              <span>{t(lang, 'updated')}</span>{' '}
+              <time datetime={lastmod!.toISOString()}>
+                {lastmodFormatted}
+              </time>
+            </p>
+          )}
+        </header>
+
+        <!-- Body -->
+        <div class="prose max-w-none" id="post-content">
+          {/* Hero banner: author image, or a deterministic on-brand fallback. */}
+          <figure class="post-hero">
+            <img
+              class="only-light"
+              src={hero.light}
+              alt={title}
+              loading="eager"
+              fetchpriority="high"
+            />
+            <img
+              class="only-dark"
+              src={hero.dark}
+              alt={title}
+              loading="eager"
+              fetchpriority="high"
+            />
+          </figure>
+          <slot />
+        </div>
+
+        <!-- Newsletter CTA (shown after post body when feature is enabled) -->
+        {site.features.newsletter && <Newsletter lang={lang} />}
+
+        <!-- Social sharing links -->
+        {
+          site.features.socialShare && (
+            <SocialShare title={title} url={canonicalURL} description={description} lang={lang} />
+          )
+        }
+
+        <!-- Related posts -->
+        {related.length > 0 && <RelatedPosts posts={related} lang={lang} />}
+
+        <!-- Manual cross-references -->
+        <PostRefs refs={post.data.refs ?? []} lang={lang} />
+
+        <!-- Comments -->
+        {site.giscus.enabled && <Giscus lang={lang} />}
+      </article>
+    </div>
+  </div>
+</Base>
+
+<!-- Code copy button — shared helper keeps the button outside the scrolling
+     <pre> so it never slides away on narrow screens. -->
+<script>
+  import { addCopyButtons } from '@utils/copy-buttons';
+
+  document.addEventListener('astro:page-load', () => {
+    addCopyButtons(document, '#post-content pre');
+  });
+</script>
+
+<!-- Medium zoom for post images -->
+<script>
+  import mediumZoom from 'medium-zoom';
+  let zoom: ReturnType<typeof mediumZoom> | null = null;
+
+  function initZoom() {
+    zoom?.detach();
+    zoom = null;
+
+    // All images in post content are zoomable by default.
+    // Add class="no-zoom" (or use <Figure zoomable={false} />) to opt out.
+    const imgs = document.querySelectorAll<HTMLImageElement>('#post-content img:not(.no-zoom)');
+    if (imgs.length === 0) return;
+
+    zoom = mediumZoom(imgs, { background: 'rgba(0,0,0,0.7)', margin: 24 });
+
+    // Failsafe: medium-zoom's close() exits early when isAnimating === true.
+    // isAnimating resets only when transitionend fires on the zoomed clone.
+    // If the CSS transition doesn't start (transform set synchronously in the
+    // same frame the clone is inserted), transitionend never fires and the zoom
+    // gets permanently stuck open. Fix: after the open event, if the library's
+    // own medium-zoom:opened event (fired inside _handleOpenEnd after the real
+    // transitionend) hasn't fired within 400 ms, dispatch a synthetic
+    // transitionend on the clone to unblock close().
+    zoom.on('open', (event: Event) => {
+      const original = event.target as HTMLElement;
+      let resolved = false;
+
+      const markResolved = () => { resolved = true; };
+      original.addEventListener('medium-zoom:opened', markResolved, { once: true });
+
+      setTimeout(() => {
+        original.removeEventListener('medium-zoom:opened', markResolved);
+        if (resolved) return;
+        const clone = document.querySelector<HTMLElement>('.medium-zoom-image--opened');
+        clone?.dispatchEvent(
+          new TransitionEvent('transitionend', {
+            bubbles: false,
+            propertyName: 'transform',
+            elapsedTime: 0.3,
+          }),
+        );
+      }, 400);
+    });
+  }
+
+  // Call immediately: the module is implicitly deferred so the DOM is ready, and this
+  // handles the case where astro:page-load (fired from window.load in ClientRouter) fires
+  // before this module script has been evaluated on an uncached first visit.
+  initZoom();
+  // Re-run on View Transitions (astro:page-load fires after each swap).
+  document.addEventListener('astro:page-load', initZoom);
+</script>
+
+<!-- ── Per-post CDN widgets ──────────────────────────────────────────────── -->
+
+{mermaid && (
+  <>
+    {/* is:inline + dynamic import — see PhotoSwipe for why <script type="module">{...} doesn't work.
+        Robust loader: placeholders are swapped in first (with a loading shimmer),
+        the CDN import runs once, mermaid.run() renders, and any failure restores
+        the original code blocks so content is never lost. Re-runs after every
+        View Transitions swap. */}
+    <script is:inline>
+      (function () {
+        var SRC = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        var SELECTOR = 'pre[data-language="mermaid"]:not([data-mmd-done]), pre.language-mermaid:not([data-mmd-done])';
+
+        function renderMermaid() {
+          var pres = document.querySelectorAll(SELECTOR);
+          if (pres.length === 0) return;
+          var items = [];
+          pres.forEach(function (pre) {
+            pre.setAttribute('data-mmd-done', '1');
+            var code = pre.querySelector('code');
+            var text = (code ? code.textContent : pre.textContent) || '';
+            if (!text.trim()) return;
+            var holder = document.createElement('div');
+            holder.className = 'mermaid mermaid-loading';
+            holder.textContent = text;
+            pre.replaceWith(holder);
+            items.push({ pre: pre, holder: holder });
+          });
+          if (items.length === 0) return;
+          import(SRC)
+            .then(function (mod) {
+              var mermaid = mod.default;
+              var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+              // DINA identity: Vazirmatn/Manrope type + orange accents in both modes.
+              mermaid.initialize({
+                startOnLoad: false,
+                theme: isDark ? 'dark' : 'default',
+                fontFamily: "'Vazirmatn','Manrope',system-ui,sans-serif",
+                themeVariables: isDark
+                  ? {
+                      primaryColor: '#ff7a18',
+                      primaryTextColor: '#fff3dd',
+                      primaryBorderColor: '#ff9b45',
+                      lineColor: '#ff9b45',
+                      secondaryColor: '#0d2035',
+                      tertiaryColor: '#0a1728',
+                      background: '#0a1728',
+                      mainBkg: '#0d2035',
+                      nodeBorder: '#ff7a18',
+                    }
+                  : {
+                      primaryColor: '#f36b12',
+                      primaryTextColor: '#0b1927',
+                      primaryBorderColor: '#c24e0a',
+                      lineColor: '#c24e0a',
+                      secondaryColor: '#fffaf2',
+                      tertiaryColor: '#f1e9da',
+                      background: '#fffaf2',
+                      mainBkg: '#fffaf2',
+                      nodeBorder: '#f36b12',
+                    },
+              });
+              return mermaid.run();
+            })
+            .then(function () {
+              document.querySelectorAll('.mermaid-loading').forEach(function (el) {
+                el.classList.remove('mermaid-loading');
+              });
+            })
+            .catch(function (err) {
+              console.error('[mermaid] render failed — showing source code instead.', err);
+              items.forEach(function (it) {
+                if (it.holder.isConnected && !it.holder.querySelector('svg')) {
+                  it.holder.replaceWith(it.pre);
+                }
+              });
+            });
+        }
+
+        document.addEventListener('astro:page-load', renderMermaid);
+        document.addEventListener('astro:after-swap', renderMermaid);
+        if (document.readyState !== 'loading') {
+          renderMermaid();
+        } else {
+          document.addEventListener('DOMContentLoaded', renderMermaid, { once: true });
+        }
+      })();
+    </script>
+  </>
+)}
+
+{chart_js && (
+  <script
+    src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"
+    integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+    crossorigin="anonymous"
+    defer></script>
+)}
+
+{echarts && (
+  <script
+    src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"
+    integrity="sha384-pPi0zxBAoDu6+JXW/C68UZLvBUUtU+7zonhif43rqj7pxsGyqyqzcian2Rj37Rss"
+    crossorigin="anonymous"
+    defer></script>
+)}
+
+{/* vega CDN scripts moved to <Fragment slot="head"> above */}
+
+{plotly && (
+  <script
+    src="https://cdn.jsdelivr.net/npm/plotly.js@2/dist/plotly.min.js"
+    integrity="sha384-MqL7Cy3itNqCI1Wlc926K0XhyRKJ/NMqTaytIIEB+QIdInOploxqRIHRKLlhPykM"
+    crossorigin="anonymous"
+    defer></script>
+)}
+
+{pseudocode && (
+  <>
+    {/* CSS from CDN */}
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/pseudocode@2.4.1/build/pseudocode.min.css"
+      integrity="sha384-ff9LEHNvuDqxJT/JRjAeQ1cWTWambRLe5j49SnOzhaotb23KEQkCanV+ooL+ch4k"
+      crossorigin="anonymous"
+    />
+    {/* Use the CDN build (pseudocode.min.js), loaded synchronously so window.pseudocode is
+        set before our deferred module script calls renderElement. The Renderer is created
+        lazily inside renderElement(), so katex does NOT need to be available at script
+        load time — only at renderElement() call time.
+
+        The npm browserify bundle has an unfixable issue in Vite's ESM output: the internal
+        `katex = require('katex')` assignment to an undeclared free variable throws
+        ReferenceError in strict mode. Even setting window.katex doesn't reliably fix it
+        because Vite's module scope isolation can prevent free-variable global lookup. The
+        CDN build bypasses this entirely: it runs in a normal browser context and reads
+        window.katex as a global at Renderer construction time. */}
+    <script is:inline
+      src="https://cdn.jsdelivr.net/npm/pseudocode@2.4.1/build/pseudocode.min.js"
+      integrity="sha384-i3+YbLfC66kxqBVtgH6I+lEFAr+57mVZY/MSthCK/oTPo0rWCRzW/kSg2mJnTKLs"
+      crossorigin="anonymous"
+    ></script>
+    {/* Module script: import katex (bundled by Vite) and expose as window.katex so the
+        CDN pseudocode.min.js Renderer can detect it via `typeof katex`. Then render all
+        pre.pseudocode elements. Re-runs on every astro:page-load for View Transitions.
+        data-psc-done prevents double-rendering on the initial hard load. */}
+    <script>
+      import katex from 'katex';
+
+      (window as Window & { katex: typeof katex }).katex = katex;
+
+      function runPseudocode() {
+        const lib = (window as Window & { pseudocode?: { renderElement(el: HTMLElement): void } }).pseudocode;
+        if (!lib) return;
+        document.querySelectorAll<HTMLElement>('pre.pseudocode:not([data-psc-done])').forEach((el) => {
+          el.setAttribute('data-psc-done', '1');
+          try { lib.renderElement(el); } catch { el.style.display = ''; }
+        });
+      }
+      runPseudocode();
+      document.addEventListener('astro:page-load', runPseudocode);
+    </script>
+  </>
+)}
+
+{typograms && (
+  <script is:inline src={`${import.meta.env.BASE_URL}assets/js/typograms.js`} type="module"></script>
+)}
+
+{tikzjax && (
+  <>
+    {/* tikzjax fonts + main script are in <Fragment slot="head"> for guaranteed defer ordering
+        on initial hard load. This listener handles View Transitions: astro:after-swap fires only
+        during VT, after the new body is in the DOM. Re-injecting tikzjax.js causes it to re-scan
+        for <script type="text/tikz"> elements. Do NOT use astro:page-load here — it can fire
+        while the WASM pipeline is still running, setting parentNode=null → silent failure. */}
+    <script is:inline>
+      document.addEventListener('astro:after-swap', function () {
+        if (!document.querySelector('script[type="text/tikz"]')) return;
+        var s = document.createElement('script');
+        s.src = 'https://tikzjax.com/v1/tikzjax.js';
+        document.head.appendChild(s);
+      });
+    </script>
+  </>
+)}
+
+{map && (
+  <>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H"
+      crossorigin="anonymous"
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH"
+      crossorigin="anonymous"
+      defer></script>
+  </>
+)}
+
+{img_comparison && (
+  <>
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/img-comparison-slider@8/dist/index.js"
+      integrity="sha384-FCXElAg99YO+h+5Ky3gZ9cVwc8wyg6sq3jn79ugH0u5jh0NR5cvr0hGP+tzpjI+A"
+      crossorigin="anonymous"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/img-comparison-slider@8/dist/styles.css"
+      integrity="sha384-TYCxyqTqCrHZ0yHG2B7VENYnxnIBGWt8GHLLkGegAYCw+1UkvUd0YpsVPrt+8//z"
+      crossorigin="anonymous"
+    />
+  </>
+)}
+
+{code_diff && (
+  <>
+    {/* pinned to diff2html@3.4.56 — update SRI when upgrading */}
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/css/diff2html.min.css"
+      integrity="sha384-PdRCG/+r1waybtXfuDB9Kmv2h7AGoN6WaTZ5OF+ctPeR9BGne0FaKRQnUeGV4nDL"
+      crossorigin="anonymous"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/js/diff2html-ui.min.js"
+      integrity="sha384-NRd5i/CwvZ20mJEQt3yaDU1LeU+tu0bqyVYojXi8d7Lf1B0/TIs2K3FTvlf8aO7p"
+      crossorigin="anonymous"
+      defer></script>
+  </>
+)}
+
+{gallery && (
+  <>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/photoswipe@5/dist/photoswipe.css"
+      integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei+Zx/1oA/0l8ysE"
+      crossorigin="anonymous"
+    />
+    {/* is:inline + dynamic import() — Astro does not process <script type="module">{...}</script>
+        JSX template literals as real ES modules, so static ESM import won't execute.
+        Dynamic import() inside is:inline works correctly and survives View Transitions. */}
+    <script is:inline>
+      document.addEventListener('astro:page-load', function () {
+        if (window.__pswpLightbox) {
+          window.__pswpLightbox.destroy();
+          window.__pswpLightbox = null;
+        }
+        if (!document.querySelector('#post-content a[data-pswp-width]')) return;
+        import('https://cdn.jsdelivr.net/npm/photoswipe@5/dist/photoswipe-lightbox.esm.js')
+          .then(function (mod) {
+            var PhotoSwipeLightbox = mod.default;
+            window.__pswpLightbox = new PhotoSwipeLightbox({
+              gallery: '#post-content',
+              children: 'a[data-pswp-width]',
+              pswpModule: function () {
+                return import('https://cdn.jsdelivr.net/npm/photoswipe@5/dist/photoswipe.esm.js');
+              },
+            });
+            window.__pswpLightbox.init();
+          });
+      });
+    </script>
+  </>
+)}
+
+{disqus && (
+  <>
+    <div id="disqus_thread" class="mt-8 pt-6" style="border-top: 1px solid var(--global-divider-color);"></div>
+    <script is:inline define:vars={{ disqusUrl: Astro.url.href, disqusId: post.id, disqusShortname: site.comments.disqusShortname }}>
+      var disqus_config = function () {
+        this.page.url = disqusUrl;
+        this.page.identifier = disqusId;
+      };
+      (function() {
+        var d = document, s = d.createElement('script');
+        s.src = `https://${disqusShortname}.disqus.com/embed.js`;
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+      })();
+    </script>
+  </>
+)}
+
+<style is:global>
+  /* TikZJax processes <script type="text/tikz"> elements asynchronously (WASM).
+     Show a subtle "Loading diagram…" placeholder while the WASM pipeline runs.
+     Once tikzjax replaces the element with an <svg>, this rule no longer applies. */
+  #post-content script[type="text/tikz"] {
+    display: block;
+    min-height: 3rem;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--global-card-bg-color, #f5f5f5) 0,
+      var(--global-card-bg-color, #f5f5f5) 40%,
+      color-mix(in srgb, var(--global-card-bg-color, #f5f5f5) 60%, transparent) 50%,
+      var(--global-card-bg-color, #f5f5f5) 60%,
+      var(--global-card-bg-color, #f5f5f5) 100%
+    );
+    background-size: 200% 100%;
+    animation: tikz-shimmer 1.6s infinite;
+    border-radius: 4px;
+  }
+  @keyframes tikz-shimmer {
+    0%   { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+
+  /* vega-embed injects .vega-embed { display: inline-block } into the page, which
+     changes the chart container from block (full width) to inline-block (content-sized).
+     Before the chart content renders, the container has 0 width, so charts using
+     "width": "container" measure 0 and render invisible. Override to block so the
+     container keeps its natural 100% width when vegaEmbed() measures it. */
+  #post-content .vega-embed {
+    display: block;
+    width: 100%;
+  }
+</style>

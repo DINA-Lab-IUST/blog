@@ -1,0 +1,187 @@
+---
+/**
+ * LabI18n — client-side chrome language engine.
+ *
+ * Static builds cannot know the visitor's language choice, so every
+ * user-visible chrome string carries a `data-i18n="key"` attribute
+ * (or `data-i18n-aria` / `data-i18n-title` / `data-i18n-placeholder` /
+ * `data-i18n-html` variants). This engine swaps them live from the
+ * `site.i18n.ui` dictionary, persists the choice in localStorage (?lang=
+ * query param wins for shareable links), and re-applies after every
+ * View Transitions swap.
+ *
+ * Dynamic templates use {placeholders} filled from `data-i18n-vars` JSON:
+ *   <span data-i18n="minReadN" data-i18n-vars='{"n":5}'>5 min read</span>
+ * Dates use <time data-i18n-date="2026-01-12T00:00:00.000Z">.
+ */
+import { site } from '@config/site';
+
+const dict = site.i18n.ui;
+const defaultLang = site.i18n.defaultLang;
+---
+
+<script is:inline define:vars={{ dict, defaultLang }}>
+  (function () {
+    function readChoice() {
+      try {
+        var q = new URLSearchParams(window.location.search).get('lang');
+        if (q === 'fa' || q === 'en') return q;
+        var s = window.localStorage.getItem('lab-lang');
+        if (s === 'fa' || s === 'en') return s;
+      } catch (e) {}
+      return document.documentElement.lang === 'fa' ? 'fa' : defaultLang;
+    }
+
+    function faNum(str) {
+      return String(str).replace(/[0-9]/g, function (d) {
+        return '۰۱۲۳۴۵۶۷۸۹'[Number(d)];
+      });
+    }
+
+    function fmt(tpl, vars, lang) {
+      var out = String(tpl).replace(/\{(\w+)\}/g, function (m, k) {
+        return vars && vars[k] != null ? String(vars[k]) : m;
+      });
+      // Persian chrome uses Persian digits for counts.
+      if (lang === 'fa') {
+        out = faNum(out);
+      }
+      return out;
+    }
+
+    function varsOf(el) {
+      var raw = el.getAttribute('data-i18n-vars');
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function intlDate(iso, lang) {
+      try {
+        return new Intl.DateTimeFormat(lang === 'fa' ? 'fa-IR' : 'en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }).format(new Date(iso));
+      } catch (e) {
+        return iso.slice(0, 10);
+      }
+    }
+
+    function intlYear(iso, lang) {
+      try {
+        return new Intl.DateTimeFormat(lang === 'fa' ? 'fa-IR' : 'en-US', {
+          year: 'numeric',
+        }).format(new Date(iso));
+      } catch (e) {
+        return String(new Date(iso).getFullYear());
+      }
+    }
+
+    function intlShort(iso, lang) {
+      try {
+        return new Intl.DateTimeFormat(lang === 'fa' ? 'fa-IR' : 'en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        }).format(new Date(iso));
+      } catch (e) {
+        return iso.slice(0, 10);
+      }
+    }
+
+    function applyChromeLang(lang) {
+      var table = dict[lang] || dict[defaultLang];
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+
+      document.querySelectorAll('[data-i18n]').forEach(function (el) {
+        var v = table[el.getAttribute('data-i18n')];
+        if (v == null) return;
+        el.textContent = fmt(v, varsOf(el), lang);
+      });
+      document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
+        var v = table[el.getAttribute('data-i18n-html')];
+        if (v == null) return;
+        el.innerHTML = fmt(v, varsOf(el), lang);
+      });
+      document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+        var v = table[el.getAttribute('data-i18n-aria')];
+        if (v == null) return;
+        el.setAttribute('aria-label', fmt(v, varsOf(el), lang));
+      });
+      document.querySelectorAll('[data-i18n-title]').forEach(function (el) {
+        var v = table[el.getAttribute('data-i18n-title')];
+        if (v == null) return;
+        el.setAttribute('title', fmt(v, varsOf(el), lang));
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+        var v = table[el.getAttribute('data-i18n-placeholder')];
+        if (v == null) return;
+        el.setAttribute('placeholder', fmt(v, varsOf(el), lang));
+      });
+      document.querySelectorAll('time[data-i18n-date]').forEach(function (el) {
+        var iso = el.getAttribute('data-i18n-date');
+        if (iso) el.textContent = intlDate(iso, lang);
+      });
+      document.querySelectorAll('time[data-i18n-year]').forEach(function (el) {
+        var iso = el.getAttribute('data-i18n-year');
+        if (iso) el.textContent = intlYear(iso, lang);
+      });
+      document.querySelectorAll('time[data-i18n-date-short]').forEach(function (el) {
+        var iso = el.getAttribute('data-i18n-date-short');
+        if (iso) el.textContent = intlShort(iso, lang);
+      });
+      document.querySelectorAll('[data-i18n-num]').forEach(function (el) {
+        var raw = el.getAttribute('data-i18n-num');
+        if (raw != null) el.textContent = lang === 'fa' ? faNum(raw) : raw;
+      });
+
+      document.querySelectorAll('[data-chrome-lang]').forEach(function (a) {
+        if (a.getAttribute('data-chrome-lang') === lang) {
+          a.setAttribute('aria-current', 'true');
+        } else {
+          a.removeAttribute('aria-current');
+        }
+      });
+
+      try {
+        window.localStorage.setItem('lab-lang', lang);
+      } catch (e) {}
+
+      // Notify widgets with their own render cycle (e.g. the search modal).
+      try {
+        window.dispatchEvent(new CustomEvent('lab-lang-change', { detail: { lang: lang } }));
+      } catch (e) {}
+    }
+
+    window.__labDict = dict;
+    window.__labDefaultLang = defaultLang;
+
+    window.__labApplyLang = applyChromeLang;
+    window.__labSetLang = function (lang) {
+      // Sync the URL first so listeners (search modal) read the fresh value.
+      try {
+        var u = new URL(window.location.href);
+        if (lang === defaultLang) {
+          u.searchParams.delete('lang');
+        } else {
+          u.searchParams.set('lang', lang);
+        }
+        window.history.replaceState(null, '', u);
+      } catch (e) {}
+      applyChromeLang(lang);
+    };
+
+    applyChromeLang(readChoice());
+    document.addEventListener('astro:page-load', function () {
+      applyChromeLang(readChoice());
+    });
+    document.addEventListener('astro:after-swap', function () {
+      applyChromeLang(readChoice());
+    });
+  })();
+</script>

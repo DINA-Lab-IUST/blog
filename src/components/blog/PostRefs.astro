@@ -1,0 +1,92 @@
+---
+/**
+ * PostRefs — manual cross-references to other posts.
+ * Frontmatter: refs: ["other-post-id", ...]. Unknown ids are skipped.
+ */
+import { site } from '@config/site';
+import { formatPostDate, normalizeLang, t } from '@utils/i18n';
+import { getCollection } from 'astro:content';
+
+interface Props {
+  refs?: string[];
+  lang?: string;
+}
+
+const { refs = [], lang = 'en' } = Astro.props;
+if (refs.length === 0) return null;
+
+const posts = await getCollection('posts');
+const byId = new Map<string, (typeof posts)[number]>();
+for (const p of posts) {
+  byId.set(p.id, p);
+  byId.set(p.id.replace(/\.mdx?$/, ''), p);
+}
+
+const resolved = refs
+  .map((r) => byId.get(r.trim()) ?? byId.get(r.trim().replace(/\.mdx?$/, '')))
+  .filter((p) => p !== undefined);
+if (resolved.length === 0) return null;
+---
+
+<section class="post-refs">
+  <h3>{t(lang, 'refsTitle')}</h3>
+  <ol>
+    {
+      resolved.map((post) => (
+        <li>
+          <a href={`${site.base}/posts/${post.id}/`} class="post-refs-title">
+            {post.data.title}
+          </a>{' '}
+          <span class="post-refs-meta">
+            (
+            <time datetime={post.data.date.toISOString()}>
+              {formatPostDate(
+                post.data.date,
+                normalizeLang((post.data as { lang?: string }).lang ?? lang),
+              )}
+            </time>
+            )
+          </span>
+        </li>
+      ))
+    }
+  </ol>
+</section>
+
+<style>
+  .post-refs {
+    margin-top: 2.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--global-divider-color);
+  }
+
+  .post-refs h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--global-text-color);
+  }
+
+  .post-refs ol {
+    margin: 0;
+    padding-inline-start: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .post-refs-title {
+    font-weight: 600;
+    color: var(--global-text-color);
+    text-decoration: none;
+  }
+
+  .post-refs-title:hover {
+    color: var(--global-theme-color);
+  }
+
+  .post-refs-meta {
+    font-size: 0.8rem;
+    color: var(--global-text-color-light);
+  }
+</style>

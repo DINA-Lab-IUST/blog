@@ -1,0 +1,1929 @@
+---
+title: 'اصول SOLID: از تاریخچه و مبانی نظری تا کاربرد عملی'
+date: 2026-10-19
+description: آموزش جامع پنج اصل طراحی شی‌گرا با ریشه‌های تاریخی، مثال‌های واقعی در جاوا، تست‌نویسی، معماری امروزی، اشتباهات رایج، نقدهای معاصر و چارچوب تصمیم‌گیری برای استفادهٔ درست از آن‌ها.
+tags: [solid, design-principles, oop, software-architecture, clean-code, refactoring]
+categories: [software-engineering]
+lang: fa
+authors: [amirhossein-maleki]
+toc: true
+pinned: false
+relatedPosts: false
+image: /assets/img/posts/solid-principles/solid-principles.png
+---
+
+import Tabs from '../../components/Tabs.astro';
+
+## مقدمه
+
+یکی از نشانه‌های طراحی شکننده این است که تغییر یک قابلیت، بخش‌های نامرتبط نرم‌افزار را هم مجبور به تغییر یا آزمون مجدد کند. برای مثال، افزودن یک درگاه پرداخت جدید نباید بی‌دلیل به منطق ذخیره‌سازی سفارش یا ارسال پیام خوش‌آمد وابسته باشد. وقتی چنین وابستگی‌هایی وجود دارد، تصمیمی که به تیم مالی تعلق دارد به کدی گره خورده که تیم زیرساخت نگه‌دارندهٔ آن است.
+
+پنج اصل SOLID[^solid] مجموعه‌ای از راهنمایی‌های طراحی شی‌گرا هستند که کمک می‌کنند مسئولیت‌ها، قراردادها و وابستگی‌ها را آگاهانه‌تر تعریف کنیم. هدف آن‌ها حذف همهٔ وابستگی‌ها یا ساختن کلاس‌های بیشتر نیست. هدف این است که تغییرهای رایج قابل‌کنترل‌تر شوند و آزمودن رفتارها ساده‌تر شود.
+
+SOLID سرواژه‌ای است برای این پنج اصل:
+
+- اصل مسئولیت یگانه (SRP)[^srp-en]
+- اصل باز/بسته (OCP)[^ocp-en]
+- اصل جایگزینی لیسکوف (LSP)[^lsp-en]
+- اصل تفکیک رابط‌ها (ISP)[^isp-en]
+- اصل وارونگی وابستگی (DIP)[^dip-en]
+
+این پنج اصل یک نظام یکپارچه نیستند. هر کدام در زمینه‌ای متفاوت و برای دردی متفاوت پیدا شده‌اند. در بخش تاریخچه می‌بینیم که فاصلهٔ زمانی میان اولین و آخرین آن‌ها نزدیک به دو دهه است.
+
+چرا باید به این اصول اهمیت داد؟ نرم‌افزار در طول عمرش مدام تغییر می‌کند، و هزینهٔ هر تغییر به میزان وابستگی‌های پنهان آن بستگی دارد. کدی که امروز ساده نوشته شده اما وابستگی‌هایش درهم‌تنیده است، کم‌کم به جایی می‌رسد که هر تغییر تازه یک ریسک است و هر رفع اشکال، زنجیره‌ای از اشکال‌های جدید می‌سازد. مارتین[^uncle-bob] به این وضعیت «پوسیدگی نرم‌افزار» (software rot) می‌گوید. SOLID تلاشی است برای مهار این پوسیدگی از راه مدیریت آگاهانهٔ وابستگی.
+
+باید همین ابتدا روشن شود که SOLID مجموعه‌ای از قانون‌های سخت و جهان‌شمول نیست. این‌ها راهنمایی‌های تجربی (heuristic)[^heuristic] برای مدیریت وابستگی در کد شی‌گرا هستند. هر اصل هم سود دارد و هم هزینه، و کار مهندس این است که تشخیص بدهد در موقعیت او کدام کفهٔ ترازو سنگین‌تر است.
+
+### این مقاله چه چیزهایی را پوشش می‌دهد
+
+- مفاهیم پایه: وابستگی، کاپلینگ، انسجام، انتزاع و قرارداد
+- ریشهٔ تاریخی هر اصل و اینکه از کدام درد عملی بیرون آمده
+- برای هر اصل: تعریف ساده، مسئله، مثال بد در جاوا، تحلیل خطاها، نسخهٔ اصلاح‌شده، تست‌نویسی و اشتباهات رایج
+- یک مثال یکپارچه که هر پنج اصل را در یک سیستم سفارش آنلاین کنار هم می‌گذارد
+- کاربرد SOLID در سطح تابع، ماژول، سرویس و API
+- روش‌های امروزی: بازآرایی گام‌به‌گام، تست‌محوری، معماری شش‌ضلعی، قواعد معماری خودکار و کار با کد قدیمی
+- ارتباط SOLID با اصول دیگر مثل YAGNI و DRY
+- نقدهای جدی امروزی و چارچوبی برای تصمیم‌گیری دربارهٔ زمان درست استفاده
+
+## مفاهیم پایه پیش از شروع
+
+برای اینکه بحث‌های بعدی سنگین نشوند، چند مفهوم را کوتاه مرور می‌کنیم.
+
+**وابستگی** (dependency) یعنی کلاس یا ماژول A برای کار کردن به B نیاز دارد. اگر B تغییر کند، ممکن است A بشکند. وابستگی بد نیست و بدون آن نرم‌افزاری ساخته نمی‌شود. مشکل از وابستگی‌های ناخواسته، پنهان یا در جهت اشتباه می‌آید.
+
+**کاپلینگ**[^coupling] میزان وابستگی میان دو بخش است. هرچه کاپلینگ کمتر باشد، تغییر در یک بخش کمتر بخش دیگر را به هم می‌ریزد.
+
+**انسجام**[^cohesion] میزان پیوستگی درونی اجزای یک بخش است. کلاسی که همهٔ متدهایش برای یک هدف کار می‌کنند منسجم است. هدف طراحی خوب معمولاً این است: انسجام بالا درون هر بخش و کاپلینگ پایین میان بخش‌ها.
+
+**انتزاع**[^abstraction] یعنی نشان دادن «چه کاری انجام می‌شود» بدون نشان دادن «چطور انجام می‌شود». در جاوا انتزاع معمولاً با رابط (interface) یا کلاس انتزاعی ساخته می‌شود.
+
+**قرارداد** (contract)[^contract] مجموعهٔ تعهدهایی است که یک نوع به مصرف‌کنندهٔ خود می‌دهد: چه ورودی‌هایی را می‌پذیرد، چه خروجی‌ای تضمین می‌کند و چه چیزهایی همیشه درست می‌مانند. بیشتر اصول SOLID در واقع دربارهٔ قراردادها هستند.
+
+یک قاعدهٔ ساده برای به خاطر سپردن: SOLID یعنی قراردادها را کوچک و روشن نگه دار، جهت وابستگی‌ها را آگاهانه انتخاب کن و کدی بنویس که بتوان بخش‌هایش را جداگانه عوض کرد و جداگانه آزمود.
+
+## تاریخچه و ریشه‌ها
+
+پنج اصل SOLID امروز به شکل یک مجموعهٔ منسجم شناخته می‌شوند، اما از اول این‌طور نبودند. رابرت سی. مارتین[^uncle-bob] این اصول را در دههٔ ۱۹۹۰ و بیشتر از دل مشاوره‌های صنعتی جمع کرد و برای اولین بار در مقاله‌ای در سال ۲۰۰۰ با عنوان *Design Principles and Design Patterns* کنار هم منتشر کرد. این اصول با کتاب سال ۲۰۰۲ او، *Agile Software Development: Principles, Patterns, and Practices*، فراگیر شدند و برای خیلی از برنامه‌نویس‌ها اولین برخورد جدی با این پنج اصل بودند.
+
+نکته‌ای که اغلب از قلم می‌افتد این است که مارتین خود سرواژهٔ SOLID را نساخته است. این سرواژه را مایکل فدرز[^feathers] حدود سال ۲۰۰۴ ساخت تا پنج اصل را به شکلی قابل‌حفظ دربیاورد. پیش از آن، هر اصل با اسم جدا و پراکنده در نوشته‌ها آمده بود.
+
+### خاستگاه هر اصل
+
+| اصل | خاستگاه | سال |
+|-----|---------|-----|
+| OCP | کتاب *Object-Oriented Software Construction* از برتراند مه‌یر | ۱۹۸۸ |
+| LSP | سخنرانی کلیدی باربارا لیسکوف با عنوان *Data Abstraction and Hierarchy* | ۱۹۸۷ |
+| LSP (تعریف رفتاری) | مقالهٔ لیسکوف و وینگ با عنوان *A Behavioral Notion of Subtyping* | ۱۹۹۴ |
+| ISP | مشاورهٔ مارتین با شرکت زیراکس و مقاله در *The C++ Report* | ۱۹۹۶ |
+| DIP | مجموعه‌مقالهٔ مارتین در *The C++ Report* | ۱۹۹۶ |
+| SRP | جمع‌بندی مارتین از ایده‌های قدیمی‌تر (اواخر دههٔ ۱۹۹۰) | دههٔ ۱۹۹۰ |
+
+بعضی از ریشه‌های SRP از این هم عمیق‌ترند. مارتین خودش در توضیح این اصل به مقالهٔ کلاسیک پارناس[^parnas] در سال ۱۹۷۲ اشاره می‌کند که دربارهٔ معیار تقسیم سیستم به ماژول‌ها بود. پس ایدهٔ اصلی، یعنی ماژول‌ها را بر اساس چیزی که احتمال تغییرش هست جدا کن، بسیار قدیمی‌تر از SOLID است.
+
+اصل باز/بسته در نگاه مه‌یر بخشی از طراحی مبتنی‌بر قرارداد[^meyer-dbc] بود و بسته بودن برای تغییر را با وراثت و سلسله‌مراتب کلاس‌ها تضمین می‌کرد. مارتین بعدها این ایده را با رابط‌ها و چندریختی بازنویسی کرد. اصل جایگزینی هم نامش را از باربارا لیسکوف دارد و صورت‌بندی رفتاری آن در مقالهٔ مشترک لیسکوف و ژانت وینگ[^liskov-wing] آمده است؛ مقاله‌ای که زیرنوع بودن را از «امضای متدها یکی باشد» به «رفتار یکی باشد» برد.
+
+بنابراین تصویر رایج که SOLID را یک بستهٔ یکپارچه و یک‌باره‌ساخته‌شده می‌بیند، تاریخ واقعی را ساده می‌کند. این اصول از پنج زمینهٔ مهندسی مختلف و در طول نزدیک به دو دهه به وجود آمده‌اند. همین توضیح می‌دهد چرا وزن عملی‌شان یکسان نیست و چرا هر کدام در زمینه‌ای خاص بیشترین سود را دارد.
+
+### چهار نشانهٔ طراحی بد
+
+مارتین این اصول را پاسخی به چهار نشانهٔ طراحی بد می‌دید. این چهار نشانه مفید هستند چون به جای بحث دربارهٔ «اصول» دردهای مشخص را نام می‌برند:
+
+- **صلبیت** (rigidity)[^rigidity]: تغییر دادن سخت است، چون هر تغییر ساده به تغییر در چند جای دیگر می‌کشد.
+- **شکنندگی** (fragility): با یک تغییر، جاهای دیگری که ربطی به آن ندارند خراب می‌شوند.
+- **بی‌حرکتی** (immobility): استفادهٔ دوباره از بخشی از کد در جای دیگر سخت است، چون به همه‌چیز چسبیده است.
+- **گران‌رویی** (viscosity): انجام کار درست سخت‌تر از انجام کار میان‌بر و کثیف است، پس همه سمت میان‌بر می‌روند.
+
+اگر در پروژه‌تان این نشانه‌ها را می‌بینید، احتمالاً یکی از اصول SOLID به کارتان می‌آید. اگر نمی‌بینید، شاید هنوز لازم نباشد خیلی نگرانش باشید.
+
+## پنج اصل
+
+برای هر اصل از ساختار ثابتی پیروی می‌کنیم: تعریف ساده، زمینهٔ تاریخی، مسئله‌ای که حل می‌کند، مثال بد، تحلیل خطاها، نسخهٔ اصلاح‌شده، توضیح راه‌حل، تست‌نویسی، نشانه‌های تشخیص و اشتباهات رایج. این ساختار یکسان کمک می‌کند اصل‌ها را با هم مقایسه کنید.
+
+### اصل اول: Single Responsibility Principle (SRP)
+
+> هر ماژول باید تنها یک دلیل برای تغییر داشته باشد، و آن دلیل باید به یک ذی‌نفع مشخص تعلق داشته باشد.
+
+این اصل ساده‌ترین اصل SOLID به نظر می‌رسد و بیشترین سوءتفاهم را هم دارد. تعبیر رایج «هر کلاس فقط یک کار انجام دهد» گمراه‌کننده است. مارتین در نوشتهٔ سال ۲۰۱۴ خود صریح می‌گوید که این اصل دربارهٔ آدم‌هاست: وقتی ماژولی می‌نویسید، باید مطمئن شوید که درخواست تغییر آن فقط از یک نفر، یا دقیق‌تر از یک گروه کوچک با یک نقش کاری مشخص بیاید. به آن گروه ذی‌نفع (actor)[^actor] می‌گوییم.
+
+#### انسجام یا تعداد کارها
+
+باید میان دو چیز فرق گذاشت: تعداد کارها و تعداد ذی‌نفع‌ها. کلاسی با ده متد که همه به یک خواستهٔ واحد خدمت می‌کنند، منسجم است و SRP را نقض نمی‌کند. کلاسی با دو متد که یکی برای تیم حسابداری و دیگری برای تیم منابع انسانی نوشته شده، SRP را نقض می‌کند. پرسش درست این نیست که «این کلاس چند کار می‌کند؟»، بلکه این است که «چند گروه ممکن است بخواهند این کلاس را عوض کنند؟».
+
+#### مسئله
+
+مسئله وقتی پیدا می‌شود که چند ذی‌نفع خواسته‌هایشان را در یک کلاس مشترک جا داده باشند. وقتی تیم امنیت قاعدهٔ رمز عبور را سخت‌تر می‌کند، تیم زیرساخت باید آزمون‌های پایگاه داده را دوباره اجرا کند و تیم رشد باید پیام خوش‌آمدگویی را دوباره بررسی کند. سه خواستهٔ مستقل، سه دلیل تغییر و سه مسیر تست که به یک نقطه گره خورده‌اند. این همان صلبیت است.
+
+در عمل، نقض SRP خودش را به شکل دشواری در نام‌گذاری نشان می‌دهد. وقتی نام کلاس به واژه‌هایی مثل `Manager`، `Processor` یا `Helper` ختم می‌شود، معمولاً دلیلش این است که هیچ اسم دقیقی نمی‌تواند چند مسئولیت ناهمگون را پوشش دهد. نشانهٔ دوم، سختی نوشتن تست واحد است: اگر برای آزمودن یک رفتار ساده باید محیطی پر از همکاران بی‌ربط راه بیندازید، مرز مسئولیت‌ها جای اشتباهی کشیده شده است.
+
+#### مثال بد
+
+کلاس زیر سه مسئولیت را هم‌زمان به دوش می‌کشد.
+
+```java
+public class UserService {
+
+  public void register(String email, String rawPassword) {
+    // دلیل تغییر اول: سیاست اعتبارسنجی رمز عبور
+    if (rawPassword.length() < 8) {
+      throw new IllegalArgumentException("رمز عبور کوتاه است");
+    }
+
+    // دلیل تغییر دوم: نحوهٔ ذخیره‌سازی؛ وابستگی مستقیم به MySQL
+    try (var conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/app");
+         var stmt = conn.prepareStatement(
+             "INSERT INTO users(email, password_hash) VALUES (?, ?)")) {
+      stmt.setString(1, email);
+      stmt.setString(2, Integer.toHexString(rawPassword.hashCode()));
+      stmt.executeUpdate();
+    } catch (SQLException e) {
+      throw new IllegalStateException("ذخیره‌سازی ناموفق", e);
+    }
+
+    // دلیل تغییر سوم: متن و کانال پیام خوش‌آمد
+    WelcomeMailer.send(email, "حساب شما ساخته شد.");
+  }
+}
+```
+
+(در این مثال برای ساده ماندن از `hashCode` به جای هش واقعی رمز استفاده شده است. در کد واقعی هرگز این کار را نکنید. برای ذخیره‌سازی رمز عبور، [راهنمای OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) استفاده از Argon2id را توصیه می‌کند. اگر این الگوریتم در دسترس نیست، scrypt جایگزین مناسبی است. bcrypt عمدتاً برای سامانه‌های قدیمی توصیه می‌شود و در صورت الزام به انطباق با FIPS-140 باید از PBKDF2 با پارامترهای تأییدشدهٔ راهنما استفاده کرد. پارامترهای دقیق را از نسخهٔ روز همان راهنما بگیرید.)
+
+#### تحلیل خطاها
+
+- سه دلیل تغییر در یک نقطه جمع شده‌اند: قاعدهٔ رمز، ذخیره‌سازی و اطلاع‌رسانی. هر دلیل به تیمی متفاوت تعلق دارد.
+- وابستگی مستقیم به JDBC باعث می‌شود تعویض پایگاه داده، بازآزمایی منطق احراز هویت را هم لازم کند، با اینکه آن منطق عوض نشده است.
+- کلاس بدون پایگاه دادهٔ واقعی و سرویس ایمیل قابل آزمودن نیست. تست واحد به محیط بیرونی گره می‌خورد و شکننده می‌شود.
+- ارسال ایمیل داخل مسیر ثبت‌نام، خرابی سرویس ایمیل را به خرابی ثبت‌نام تبدیل می‌کند.
+- افزودن کانال تازه، مثلاً پیامک، مستقیماً همین کلاس را تغییر می‌دهد، در حالی که ربطی به قاعدهٔ رمز یا ذخیره‌سازی ندارد.
+- نام کلاس هیچ سرنخی از مسئولیتش نمی‌دهد و پیدا کردن جای درست تغییر برای توسعه‌دهندهٔ جدید سخت می‌شود.
+
+#### نسخهٔ اصلاح‌شده
+
+در تب دوم می‌بینید که سه دلیل تغییر به سه همکار سپرده شده و `UserService` فقط هماهنگ‌کننده است.
+
+<Tabs tabs={['نسخه بد', 'نسخه اصلاح‌شده']} id="srp-tabs">
+  <div slot="tab-0">
+
+```java
+public class UserService {
+
+  public void register(String email, String rawPassword) {
+    // دلیل تغییر اول: سیاست اعتبارسنجی رمز عبور
+    if (rawPassword.length() < 8) {
+      throw new IllegalArgumentException("رمز عبور کوتاه است");
+    }
+
+    // دلیل تغییر دوم: نحوهٔ ذخیره‌سازی؛ وابستگی مستقیم به MySQL
+    try (var conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/app");
+         var stmt = conn.prepareStatement(
+             "INSERT INTO users(email, password_hash) VALUES (?, ?)")) {
+      stmt.setString(1, email);
+      stmt.setString(2, Integer.toHexString(rawPassword.hashCode()));
+      stmt.executeUpdate();
+    } catch (SQLException e) {
+      throw new IllegalStateException("ذخیره‌سازی ناموفق", e);
+    }
+
+    // دلیل تغییر سوم: متن و کانال پیام خوش‌آمد
+    WelcomeMailer.send(email, "حساب شما ساخته شد.");
+  }
+}
+```
+
+  </div>
+  <div slot="tab-1">
+
+```java
+public class PasswordPolicy {
+
+  private static final int MIN_LENGTH = 8;
+
+  public void validate(String rawPassword) {
+    if (rawPassword.length() < MIN_LENGTH) {
+      throw new IllegalArgumentException("رمز عبور کوتاه است");
+    }
+  }
+}
+
+public interface PasswordHasher {
+  String hash(String rawPassword);
+}
+
+public interface UserRepository {
+  void save(User user);
+}
+
+public class JdbcUserRepository implements UserRepository {
+
+  private final DataSource dataSource;
+
+  public JdbcUserRepository(DataSource dataSource) {
+    this.dataSource = dataSource;
+  }
+
+  @Override
+  public void save(User user) {
+    try (var conn = dataSource.getConnection();
+         var stmt = conn.prepareStatement(
+             "INSERT INTO users(email, password_hash) VALUES (?, ?)")) {
+      stmt.setString(1, user.email());
+      stmt.setString(2, user.passwordHash());
+      stmt.executeUpdate();
+    } catch (SQLException e) {
+      throw new IllegalStateException("ذخیره‌سازی ناموفق", e);
+    }
+  }
+}
+
+public interface WelcomeNotifier {
+  void notifyNewUser(String email);
+}
+
+public record User(String email, String passwordHash) {}
+
+public class UserService {
+
+  private final PasswordPolicy policy;
+  private final PasswordHasher hasher;
+  private final UserRepository repository;
+  private final WelcomeNotifier notifier;
+
+  public UserService(PasswordPolicy policy,
+                     PasswordHasher hasher,
+                     UserRepository repository,
+                     WelcomeNotifier notifier) {
+    this.policy = policy;
+    this.hasher = hasher;
+    this.repository = repository;
+    this.notifier = notifier;
+  }
+
+  public void register(String email, String rawPassword) {
+    policy.validate(rawPassword);
+    repository.save(new User(email, hasher.hash(rawPassword)));
+    notifier.notifyNewUser(email);
+  }
+}
+```
+
+  </div>
+</Tabs>
+
+#### توضیح راه‌حل
+
+سیاست رمز به `PasswordPolicy` رفته، هش کردن پشت رابط `PasswordHasher` پنهان شده، ماندگاری پشت `UserRepository` و اطلاع‌رسانی پشت `WelcomeNotifier` قرار گرفته است. `UserService` حالا فقط هماهنگ می‌کند. اگر تیم امنیت قاعدهٔ رمز را عوض کند، فقط `PasswordPolicy` تغییر می‌کند. اگر تیم زیرساخت از MySQL به PostgreSQL برود، فقط پیاده‌سازی مخزن تغییر می‌کند.
+
+دقت کنید که این ساختار SRP را به DIP گره می‌زند: جدا کردن مسئولیت‌ها وقتی سود می‌دهد که مرزها با انتزاع بیان شوند، نه با ارجاع مستقیم به کلاس‌های مشخص.
+
+#### مثال دوم: گزارش کارکنان
+
+مثال معروف مارتین را به زبان ساده بازگو می‌کنیم. کلاس `Employee` سه متد دارد: محاسبهٔ حقوق، گزارش ساعت کاری و ذخیره در پایگاه داده. محاسبهٔ حقوق مال حسابداری است، گزارش ساعت‌ها مال منابع انسانی و ذخیره‌سازی مال تیم پایگاه داده. حالا فرض کنید هر دو متد حقوق و گزارش ساعت، از یک تابع کمکی مشترک برای حساب کردن «ساعت‌های اضافه‌کاری» استفاده می‌کنند. حسابداری قاعدهٔ اضافه‌کاری را عوض می‌کند و تابع مشترک را تغییر می‌دهد. گزارش منابع انسانی بی‌خبر خراب می‌شود، چون آن تیم هیچ‌وقت چنین تغییری نخواسته بود.
+
+این مثال یک خطای رایج را نشان می‌دهد: حذف تکرار (DRY)[^dry] میان دو ذی‌نفع متفاوت. دو کد که امروز شبیه هم هستند ولی به دو تیم تعلق دارند، باید جدا بمانند. شباهت ظاهری دلیل کافی برای ادغام نیست.
+
+#### تست‌نویسی و SRP
+
+بعد از جدا کردن مسئولیت‌ها، تست‌ها ساده می‌شوند. برای مثال، منطق ثبت‌نام را بدون پایگاه داده می‌توان آزمود:
+
+```java
+class UserServiceTest {
+
+  static class FakeUserRepository implements UserRepository {
+    final List<User> saved = new ArrayList<>();
+    @Override public void save(User user) { saved.add(user); }
+  }
+
+  static class FakeNotifier implements WelcomeNotifier {
+    final List<String> notified = new ArrayList<>();
+    @Override public void notifyNewUser(String email) { notified.add(email); }
+  }
+
+  @Test
+  void registersUserAndNotifies() {
+    var repo = new FakeUserRepository();
+    var notifier = new FakeNotifier();
+    var service = new UserService(
+        new PasswordPolicy(), raw -> "hash:" + raw, repo, notifier);
+
+    service.register("a@example.com", "longEnough1");
+
+    assertEquals(1, repo.saved.size());
+    assertEquals(List.of("a@example.com"), notifier.notified);
+  }
+
+  @Test
+  void rejectsShortPassword() {
+    var service = new UserService(
+        new PasswordPolicy(), raw -> raw, new FakeUserRepository(), email -> {});
+
+    assertThrows(IllegalArgumentException.class,
+        () -> service.register("a@example.com", "short"));
+  }
+}
+```
+
+این تست‌ها در چند میلی‌ثانیه اجرا می‌شوند و به هیچ چیز بیرونی نیاز ندارند. اگر نسخهٔ بد را داشتید، برای همین دو تست به یک MySQL واقعی و یک سرویس ایمیل نیاز بود.
+
+#### سؤال‌هایی که نقض SRP را نشان می‌دهند
+
+- آیا می‌توانم کارکرد این کلاس را در یک جمله، بدون استفاده از «و»، توضیح دهم؟
+- آیا در تاریخچهٔ گیت، این فایل را آدم‌هایی از تیم‌های مختلف و به دلیل‌های نامرتبط عوض کرده‌اند؟
+- آیا برای تست کردن یک متد ساده مجبورم چیزهای نامرتبط را بسازم یا شبیه‌سازی کنم؟
+- آیا در بازبینی کد، تیم‌های نامرتبط برای این کلاس نظر می‌دهند؟
+
+سؤال دوم عملی‌ترین است. با ابزارهایی مثل `git log --follow` یا ابزار تحلیل «نرخ تغییر فایل‌ها» می‌توانید فایل‌هایی را پیدا کنید که بیش از بقیه عوض می‌شوند و همیشه به دلیل‌های مختلف. این فایل‌ها نامزد اول بازآرایی هستند.
+
+#### اشتباهات رایج دربارهٔ SRP
+
+- SRP یعنی «هر کلاس یک متد» یا «هر کلاس یک کار» نیست. معیار تعداد ذی‌نفع‌هاست، نه تعداد متدها.
+- تکه‌تکه کردن مکانیکی یک کلاس به قطعات ریز، اگر قطعات هنوز به هم گره خورده باشند، فایده‌ای ندارد. SRP دربارهٔ انسجام است، نه تعداد کلاس‌ها.
+- دامنهٔ SRP فقط کلاس نیست. دربارهٔ تابع، ماژول، سرویس و مؤلفهٔ رابط کاربری هم صدق می‌کند.
+- دلیل تغییر را باید از دید سازمان دید، نه از روی اسم متدها. دو متد با اسم‌های متفاوت ممکن است به یک ذی‌نفع خدمت کنند.
+- کوچک بودن نشانهٔ رعایت SRP نیست. کلاس کوچکی که دو ذی‌نفع را در خود جا داده نقض کرده است، و کلاس بزرگی که فقط به یک ذی‌نفع خدمت می‌کند نقض نکرده است.
+- مخلوط شدن چند ذی‌نفع در یک کلاس، بازبینی کد را به میدان چانه‌زنی میان تیم‌ها تبدیل می‌کند.
+- افراط در جدا کردن، به «کلاس‌های ناقص» می‌رسد که هیچ‌کدام بدون دیگری معنا ندارند. اگر دو کلاس همیشه با هم و به یک دلیل تغییر می‌کنند، احتمالاً باید یکی باشند.
+
+### اصل دوم: Open/Closed Principle (OCP)
+
+> هر موجودیت نرم‌افزاری باید برای گسترش باز و برای تغییر بسته باشد.
+
+این اصل می‌گوید رفتار یک موجودیت را می‌توان گسترش داد بدون اینکه کد موجود آن را ویرایش کنیم. «باز بودن برای گسترش» یعنی می‌شود قابلیت اضافه کرد. «بسته بودن برای تغییر» یعنی این اضافه کردن نباید به ویرایش بخش‌های موجود و آزمون‌شده بینجامد.
+
+پیشینهٔ این اصل از SRP روشن‌تر است. برتراند مه‌یر آن را در کتاب سال ۱۹۸۸ خود مطرح کرد؛ یعنی بیش از یک دهه پیش از آنکه مارتین آن را وارد مجموعهٔ SOLID کند. مارتین ایده را دوباره صورت‌بندی و عبارت «باز برای گسترش، بسته برای تغییر» را تثبیت کرد. در نگاه مه‌یر، بسته بودن حاصل وراثت و قرارداد کلاس‌ها بود. در نگاه مارتین و جاوای امروزی، بیشتر با رابط و چندریختی (polymorphism)[^polymorphism] به دست می‌آید.
+
+#### مسئله
+
+مسئلهٔ اصلی، زنجیرهٔ `if/else` یا `switch` بر اساس نوع است. هر بار که نوع تازه‌ای به سیستم اضافه شود، شاخهٔ تازه‌ای به همان نقطهٔ مرکزی اضافه می‌شود و همهٔ حالت‌های موجود باید دوباره آزموده شوند. در چنین ساختاری «گسترش» و «تغییر» یکی شده‌اند و کد مرکزی به دانش همهٔ انواع ممکن گره خورده است.
+
+#### مثال بد
+
+```java
+public class AreaCalculator {
+
+  public double area(Object shape) {
+    // کلاس برای هر شکل تازه باید ویرایش شود؛ پیامد آن بازآزمایی همهٔ حالت‌ها است
+    if (shape instanceof Circle circle) {
+      return Math.PI * circle.radius() * circle.radius();
+    } else if (shape instanceof Square square) {
+      return square.side() * square.side();
+    } else if (shape instanceof Rectangle rectangle) {
+      return rectangle.width() * rectangle.height();
+    }
+    throw new IllegalArgumentException("شکل ناشناخته");
+  }
+
+  public double totalArea(List<Object> shapes) {
+    double total = 0;
+    for (Object shape : shapes) {
+      total += area(shape);
+    }
+    return total;
+  }
+}
+
+record Circle(double radius) {}
+record Square(double side) {}
+record Rectangle(double width, double height) {}
+```
+
+#### تحلیل خطاها
+
+- شرط‌های مبتنی‌بر نوع، دانش همهٔ شکل‌ها را در یک نقطه جمع می‌کنند. کلاس مرکزی به شکل‌های مشخص وابسته است، نه به مفهوم «شکل».
+- افزودن هر شکل جدید، ویرایش همین کلاس و بازآزمایی همهٔ شکل‌های موجود را لازم می‌کند.
+- نوع ورودی `Object` است. کامپایلر نمی‌تواند مطمئن شود همهٔ انواع پوشش داده شده‌اند و خطا به زمان اجرا می‌افتد.
+- منطق مساحت هر شکل جای اشتباهی نشسته است: دانش هر شکل داخل کلاسی است که به آن شکل تعلق ندارد.
+- آزمون‌های این کلاس به همهٔ شکل‌ها گره خورده‌اند.
+
+#### نسخهٔ اصلاح‌شده
+
+این‌جا دانش مساحت به خود شکل‌ها برمی‌گردد.
+
+<Tabs tabs={['نسخه بد', 'نسخه اصلاح‌شده']} id="ocp-tabs">
+  <div slot="tab-0">
+
+```java
+public class AreaCalculator {
+
+  public double area(Object shape) {
+    // کلاس برای هر شکل تازه باید ویرایش شود؛ پیامد آن بازآزمایی همهٔ حالت‌ها است
+    if (shape instanceof Circle circle) {
+      return Math.PI * circle.radius() * circle.radius();
+    } else if (shape instanceof Square square) {
+      return square.side() * square.side();
+    } else if (shape instanceof Rectangle rectangle) {
+      return rectangle.width() * rectangle.height();
+    }
+    throw new IllegalArgumentException("شکل ناشناخته");
+  }
+
+  public double totalArea(List<Object> shapes) {
+    double total = 0;
+    for (Object shape : shapes) {
+      total += area(shape);
+    }
+    return total;
+  }
+}
+
+record Circle(double radius) {}
+record Square(double side) {}
+record Rectangle(double width, double height) {}
+```
+
+  </div>
+  <div slot="tab-1">
+
+```java
+public interface Shape {
+  double area();
+}
+
+public record Circle(double radius) implements Shape {
+  @Override
+  public double area() {
+    return Math.PI * radius * radius;
+  }
+}
+
+public record Square(double side) implements Shape {
+  @Override
+  public double area() {
+    return side * side;
+  }
+}
+
+public record Rectangle(double width, double height) implements Shape {
+  @Override
+  public double area() {
+    return width * height;
+  }
+}
+
+// افزودن شکل تازه فقط یک کلاس می‌افزاید؛ هیچ شکل موجودی تغییر نمی‌کند
+public record Triangle(double base, double height) implements Shape {
+  @Override
+  public double area() {
+    return base * height / 2;
+  }
+}
+
+public class AreaCalculator {
+  public double totalArea(List<Shape> shapes) {
+    return shapes.stream().mapToDouble(Shape::area).sum();
+  }
+}
+```
+
+  </div>
+</Tabs>
+
+محاسبه‌گر دیگر هیچ شکلی را نمی‌شناسد و فقط به رابط `Shape` وابسته است. افزودن `Triangle` هیچ خطی از کد موجود را تغییر نمی‌دهد. توجه کنید که این نتیجه را بدون وراثت گرفتیم. هیچ شکلی از شکل دیگر ارث نمی‌برد و همه فقط یک رابط مشترک را پیاده می‌کنند.
+
+#### مثال کاربردی: تخفیف‌های فروشگاه آنلاین
+
+مثال هندسی خوب است ولی در پروژهٔ واقعی بیشتر با قواعد کسب‌وکار روبه‌رو می‌شوید. فرض کنید فروشگاهی تخفیف‌های متفاوتی دارد: تخفیف مناسبتی، تخفیف مشتری ویژه، تخفیف خرید بالای مبلغ مشخص. نسخهٔ بد:
+
+```java
+public class PriceCalculator {
+
+  public long finalPrice(Order order, String discountType) {
+    long total = order.totalMinor();
+    if (discountType.equals("SEASONAL")) {
+      return total - total * 10 / 100;
+    } else if (discountType.equals("VIP")) {
+      return total - total * 20 / 100;
+    } else if (discountType.equals("BULK") && total > 1_000_000) {
+      return total - 50_000;
+    }
+    return total;
+  }
+}
+```
+
+هر قاعدهٔ تخفیف تازه، این تابع را عوض می‌کند. بدتر اینکه نوع تخفیف رشته است و یک غلط تایپی خطا را به زمان اجرا می‌برد. نسخهٔ بهتر از الگوی استراتژی[^strategy] استفاده می‌کند:
+
+```java
+public interface DiscountPolicy {
+  long discountFor(Order order);
+}
+
+public class SeasonalDiscount implements DiscountPolicy {
+  @Override
+  public long discountFor(Order order) {
+    return order.totalMinor() * 10 / 100;
+  }
+}
+
+public class VipDiscount implements DiscountPolicy {
+  @Override
+  public long discountFor(Order order) {
+    return order.totalMinor() * 20 / 100;
+  }
+}
+
+public class BulkDiscount implements DiscountPolicy {
+  @Override
+  public long discountFor(Order order) {
+    return order.totalMinor() > 1_000_000 ? 50_000 : 0;
+  }
+}
+
+public class PriceCalculator {
+
+  private final List<DiscountPolicy> policies;
+
+  public PriceCalculator(List<DiscountPolicy> policies) {
+    this.policies = policies;
+  }
+
+  public long finalPrice(Order order) {
+    long discount = policies.stream()
+        .mapToLong(p -> p.discountFor(order))
+        .sum();
+    return Math.max(0, order.totalMinor() - discount);
+  }
+}
+```
+
+اضافه کردن تخفیف جدید یعنی یک کلاس جدید و یک خط در پیکربندی. `PriceCalculator` و تست‌هایش دست نمی‌خورند. توجه کنید که پول را با عدد صحیح و واحد کوچک (مثلاً ریال یا سنت) نگه داشته‌ایم و از `double` استفاده نکرده‌ایم، چون خطای گرد کردن اعشاری در محاسبات مالی مشکل‌ساز است.
+
+#### بدون وراثت هم می‌شود: جدول قواعد
+
+OCP همیشه به معنای کلاس‌های جدید نیست. اگر قواعد فقط داده هستند، یک جدول یا فایل پیکربندی همان کار را با هزینهٔ کمتر می‌کند:
+
+```java
+public record DiscountRule(String customerTier, long minTotalMinor, int percent) {}
+
+public class RuleBasedPricing {
+
+  private final List<DiscountRule> rules;
+
+  public RuleBasedPricing(List<DiscountRule> rules) {
+    this.rules = rules;
+  }
+
+  public long finalPrice(Order order, String tier) {
+    int best = rules.stream()
+        .filter(r -> r.customerTier().equals(tier))
+        .filter(r -> order.totalMinor() >= r.minTotalMinor())
+        .mapToInt(DiscountRule::percent)
+        .max()
+        .orElse(0);
+    return order.totalMinor() - order.totalMinor() * best / 100;
+  }
+}
+```
+
+اگر تفاوت قواعد فقط در عدد و شرط ساده است، لازم نیست برای هر کدام یک کلاس بسازید. کلاس‌ها را وقتی بسازید که رفتار واقعاً متفاوت باشد.
+
+#### گزینهٔ امروزی: رابط‌های مهر‌شده و تطبیق الگو
+
+از جاوا ۲۱ به بعد، با رابط‌های مهر‌شده (sealed) و `switch` تطبیق الگو، روش دیگری هم داریم:
+
+```java
+public sealed interface PaymentMethod permits Card, Wallet, BankTransfer {}
+
+public record Card(String number) implements PaymentMethod {}
+public record Wallet(String walletId) implements PaymentMethod {}
+public record BankTransfer(String iban) implements PaymentMethod {}
+
+public class FeeCalculator {
+
+  public long fee(PaymentMethod method, long amountMinor) {
+    return switch (method) {
+      case Card c -> amountMinor * 2 / 100;
+      case Wallet w -> 0;
+      case BankTransfer b -> 5_000;
+    };
+  }
+}
+```
+
+کامپایلر اینجا مطمئن می‌شود همهٔ انواع پوشش داده شده‌اند. اگر نوع جدیدی به رابط مهر‌شده اضافه کنید، همهٔ `switch`هایی که همهٔ حالت‌ها را نمی‌پوشانند در زمان کامپایل خطا می‌دهند. این رویکرد از نظر OCP «بسته» است، چون مجموعهٔ انواع ثابت است و کامپایلر نگهبان آن است. تفاوتش با رابط چندریخت این است که افزودن *نوع* جدید سخت‌تر (چون باید همهٔ `switch`ها را اصلاح کنید) ولی افزودن *عملیات* جدید ساده‌تر است (چون فقط یک `switch` جدید می‌نویسید).
+
+این همان چیزی است که در ادبیات زبان‌های برنامه‌نویسی به آن «مسئلهٔ بیان» (expression problem)[^expression-problem] می‌گویند: هر روش یکی از دو محور گسترش را آسان و دیگری را سخت می‌کند. انتخاب درست بستگی دارد به اینکه در سیستم شما کدام محور بیشتر تغییر می‌کند: انواع یا عملیات. اگر مجموعهٔ انواع ثابت و عملیات متغیر است (مثل انواع روش پرداخت در یک بانک)، رابط مهر‌شده بهتر است. اگر انواع زیاد اضافه می‌شوند و عملیات ثابت‌اند (مثل پلاگین‌ها)، چندریختی کلاسیک بهتر است.
+
+#### انتخاب محور گسترش یک تصمیم طراحی است
+
+OCP نمی‌گوید برای هر چیزی نقطهٔ گسترش بسازید. می‌گوید پس از شناسایی محور واقعی تنوع، آن محور را پشت یک قرارداد پایدار پنهان کنید. پیش از شناسایی، هر انتزاعی حدس است. در مثال مساحت، تنوع واقعی شکل‌هاست. اگر در آینده تنوع به قالب خروجی یا سیاست گزارش منتقل شود، نقطهٔ انتزاع هم باید همراهش جابه‌جا شود.
+
+یک قاعدهٔ عملی اینجا کمک می‌کند: **قاعدهٔ سه‌تایی** (rule of three)[^rule-of-three]. اولین بار که با یک نوع رفتار روبه‌رو می‌شوید، ساده‌ترین کد را بنویسید. بار دوم، شاید کپی کنید و ناراحت باشید. بار سوم، بازآرایی کنید و انتزاع بسازید. در این لحظه سه نمونهٔ واقعی دارید و می‌دانید انتزاع باید چه شکلی داشته باشد.
+
+#### تست‌نویسی و OCP
+
+یکی از مزیت‌های ملموس OCP در تست دیده می‌شود. هر سیاست تخفیف را جداگانه و با ورودی‌های ساده می‌توان آزمود:
+
+```java
+class BulkDiscountTest {
+
+  @Test
+  void givesFlatDiscountAboveThreshold() {
+    var order = new Order("o1", "c1",
+        List.of(new OrderLine("sku", 1, 1_200_000)));
+    assertEquals(50_000, new BulkDiscount().discountFor(order));
+  }
+
+  @Test
+  void givesNothingBelowThreshold() {
+    var order = new Order("o2", "c1",
+        List.of(new OrderLine("sku", 1, 900_000)));
+    assertEquals(0, new BulkDiscount().discountFor(order));
+  }
+}
+```
+
+افزودن یک سیاست تخفیف جدید نباید مستلزم بازنویسی تست‌های سیاست‌های قبلی باشد. با این حال، مجموعهٔ تست‌های رگرسیون باید در فرایند CI اجرا شود تا خطاهای ناخواسته در تعامل میان اجزای سیستم شناسایی شوند.
+
+#### اشتباهات رایج دربارهٔ OCP
+
+- OCP به معنای وراثت نیست. گسترش می‌تواند با ترکیب (composition)، الگوی استراتژی، سیستم افزونه، جدول قواعد یا حتی پرچم ویژگی (feature flag) انجام شود.
+- «بسته بودن برای تغییر» به معنای تغییرناپذیری ابدی نیست. یعنی مسیر پیش‌فرض اضافه کردن قابلیت نباید ویرایش کد موجود باشد.
+- ساختن نقطهٔ گسترش پیش از ظهور نیاز واقعی خودش هزینه دارد. OCP مجوز انتزاع‌سازی زودهنگام نیست.
+- هر `if` را نباید چندریخت کرد. شرط‌های مبتنی‌بر نوع با شرط‌های مبتنی‌بر داده در زمان اجرا فرق دارند.
+- گسترش همیشه با کد نیست. گاهی یک فایل پیکربندی یا یک جدول در پایگاه داده همان بازبودن را با هزینهٔ بسیار کمتر می‌دهد.
+- بستن همه‌چیز غیرممکن است. هر طراحی در برابر برخی تغییرها بسته و در برابر برخی دیگر باز است. شما باید تصمیم بگیرید کدام تغییرها محتمل‌ترند.
+
+### اصل سوم: Liskov Substitution Principle (LSP)
+
+> زیرنوع‌ها باید بتوانند بدون به هم زدن درستی برنامه، جای نوع پایه را بگیرند.
+
+این اصل ظریف‌ترین و بدفهمیده‌ترین اصل SOLID است. تمرکزش بر رفتار است، نه ساختار. یک زیرنوع فقط وقتی پذیرفتنی است که هر جا نوع پایه انتظار می‌رود، بتوان از آن استفاده کرد، بدون اینکه درستی برنامه عوض شود.
+
+نامش از باربارا لیسکوف است که در سخنرانی سال ۱۹۸۷ این ایده را مطرح کرد و بعدها با ژانت وینگ[^liskov-wing] در سال ۱۹۹۴ آن را رسمی کرد. مارتین این ایده را در قالب جملهٔ ساده‌تری در SOLID گنجاند: زیرنوع باید بدون اینکه مصرف‌کننده بفهمد، جای نوع پایه را بگیرد.
+
+#### مسئله
+
+نقض LSP اغلب پنهان می‌ماند، چون برنامه در بیشتر مسیرها درست کار می‌کند و فقط در یک مسیر خاص می‌شکند. نمونهٔ کلاسیک مربع و مستطیل است. اگر مربع از مستطیل ارث ببرد، هر مصرف‌کننده‌ای که انتظار دارد پهنا و بلندی مستقل باشند نتیجهٔ نادرست می‌گیرد.
+
+#### قرارداد یک زیرنوع چهار جزء دارد
+
+قرارداد فراتر از امضای متدهاست:
+
+1. **پیش‌شرط‌ها** (preconditions): آنچه مصرف‌کننده باید رعایت کند تا متد کار کند. زیرنوع نباید پیش‌شرط را سخت‌تر کند.
+2. **پس‌شرط‌ها** (postconditions): آنچه متد بعد از اجرا تضمین می‌کند. زیرنوع نباید پس‌شرط را سست‌تر کند.
+3. **ناورداها** (invariants): چیزهایی که در تمام عمر شیء باید درست بمانند. زیرنوع باید آن‌ها را حفظ کند.
+4. **قاعدهٔ تاریخچه** (history constraint): زیرنوع نباید حالت شیء را به شکلی تغییر دهد که نوع پایه اجازه نمی‌داد.
+
+یک مثال ملموس از پیش‌شرط و پس‌شرط: فرض کنید رابط `Account` می‌گوید `withdraw(amount)` برای هر مبلغ مثبت کوچک‌تر یا مساوی موجودی کار می‌کند و موجودی را دقیقاً به اندازهٔ `amount` کم می‌کند. حالا یک زیرنوع `PremiumAccount` که فقط مبلغ‌های بالاتر از ۱۰۰ را قبول می‌کند، پیش‌شرط را سخت‌تر کرده و LSP را شکسته است. زیرنوعی که ۲ درصد کارمزد هم کم می‌کند، پس‌شرط را سست کرده است. مصرف‌کننده‌ای که به قرارداد اصلی اعتماد کرده بود حالا نتیجه‌ای غیرمنتظره می‌گیرد.
+
+#### مثال بد
+
+```java
+public class Rectangle {
+
+  protected int width;
+  protected int height;
+
+  public void setWidth(int width) {
+    this.width = width;
+  }
+
+  public void setHeight(int height) {
+    this.height = height;
+  }
+
+  public int area() {
+    return width * height;
+  }
+}
+
+public class Square extends Rectangle {
+
+  @Override
+  public void setWidth(int width) {
+    // حفظ ناوردای مربع، رفتار قابل‌انتظار نوع پایه را نقض می‌کند
+    this.width = width;
+    this.height = width;
+  }
+
+  @Override
+  public void setHeight(int height) {
+    this.width = height;
+    this.height = height;
+  }
+}
+
+public class AreaCalculator {
+  public int compute(Rectangle rectangle) {
+    rectangle.setWidth(5);
+    rectangle.setHeight(4);
+    return rectangle.area(); // برای Rectangle برابر ۲۰ است، با Square برابر ۱۶
+  }
+}
+```
+
+#### تحلیل خطاها
+
+- مصرف‌کننده‌ای که فقط به قرارداد `Rectangle` وابسته است حق دارد بعد از تنظیم پهنا و بلندی، مساحت را حاصل‌ضرب آن دو بداند. `Square` این انتظار را نقض می‌کند.
+- نقض در زمان کامپایل دیده نمی‌شود. هر دو کلاس درست کامپایل می‌شوند و فقط یک مسیر اجرایی نتیجهٔ غلط می‌دهد.
+- مربع ناورداهای خودش را حفظ می‌کند ولی این ناوردا با پس‌شرط نوع پایه تضاد دارد. ریشهٔ مشکل در قرارداد است، نه در پیاده‌سازی.
+- ریشهٔ اصلی یک تصمیم مدل‌سازی است: مربع در ریاضیات مستطیل است، اما در رفتار برنامه نوعی مستقل با قرارداد متفاوت است.
+- تست‌هایی که فقط هر متد را جداگانه می‌سنجند این مشکل را پنهان می‌کنند.
+
+#### نسخهٔ اصلاح‌شده
+
+<Tabs tabs={['نسخه بد', 'نسخه اصلاح‌شده']} id="lsp-tabs">
+  <div slot="tab-0">
+
+```java
+public class Rectangle {
+
+  protected int width;
+  protected int height;
+
+  public void setWidth(int width) {
+    this.width = width;
+  }
+
+  public void setHeight(int height) {
+    this.height = height;
+  }
+
+  public int area() {
+    return width * height;
+  }
+}
+
+public class Square extends Rectangle {
+
+  @Override
+  public void setWidth(int width) {
+    // حفظ ناوردای مربع، رفتار قابل‌انتظار نوع پایه را نقض می‌کند
+    this.width = width;
+    this.height = width;
+  }
+
+  @Override
+  public void setHeight(int height) {
+    this.width = height;
+    this.height = height;
+  }
+}
+
+public class AreaCalculator {
+  public int compute(Rectangle rectangle) {
+    rectangle.setWidth(5);
+    rectangle.setHeight(4);
+    return rectangle.area(); // برای Rectangle برابر ۲۰ است، با Square برابر ۱۶
+  }
+}
+```
+
+  </div>
+  <div slot="tab-1">
+
+```java
+public interface Shape {
+  int area();
+}
+
+public record Rectangle(int width, int height) implements Shape {
+  @Override
+  public int area() {
+    return width * height;
+  }
+}
+
+public record Square(int side) implements Shape {
+  @Override
+  public int area() {
+    return side * side;
+  }
+}
+
+// مصرف‌کننده فقط به Shape وابسته است؛ هیچ ناوردای پنهانی برای نقض باقی نمی‌ماند
+public class AreaCalculator {
+
+  public int compute(Shape shape) {
+    return shape.area();
+  }
+
+  public int total(List<Shape> shapes) {
+    return shapes.stream().mapToInt(Shape::area).sum();
+  }
+}
+```
+
+  </div>
+</Tabs>
+
+در نسخهٔ اصلاح‌شده نه مربع از مستطیل ارث می‌برد و نه مستطیل متد تغییردهنده دارد. هر دو تغییرناپذیرند و تنها تعهد مشترکشان محاسبهٔ مساحت است. هر مصرف‌کننده‌ای که به `Shape` وابسته باشد رفتار یکسان و قابل‌پیش‌بینی می‌گیرد.
+
+درس مهم: تغییرناپذیری (immutability)[^immutability] یکی از قوی‌ترین ابزارها برای رعایت LSP است. وقتی شیء بعد از ساخته شدن تغییر نمی‌کند، بخش بزرگی از ناورداها و قاعدهٔ تاریخچه خودبه‌خود محفوظ می‌ماند.
+
+#### مثال دوم: ذخیره‌سازی فایل
+
+فرض کنید رابط زیر را دارید:
+
+```java
+public interface FileStorage {
+  void save(String name, byte[] content);
+  byte[] load(String name);
+}
+```
+
+و پیاده‌سازی فقط‌خواندنی که برای آرشیو ساخته‌اید:
+
+```java
+public class ArchiveStorage implements FileStorage {
+
+  @Override
+  public void save(String name, byte[] content) {
+    throw new UnsupportedOperationException("آرشیو فقط‌خواندنی است");
+  }
+
+  @Override
+  public byte[] load(String name) {
+    // خواندن از آرشیو
+    return new byte[0];
+  }
+}
+```
+
+مصرف‌کننده‌ای که `FileStorage` می‌گیرد و `save` را صدا می‌زند در زمان اجرا خطا می‌گیرد. این نقض LSP است: زیرنوع پس‌شرط «ذخیره انجام می‌شود» را نقض کرده است. راه‌حل معمولاً دو رابط جدا است:
+
+```java
+public interface ReadableStorage {
+  byte[] load(String name);
+}
+
+public interface WritableStorage extends ReadableStorage {
+  void save(String name, byte[] content);
+}
+```
+
+حالا `ArchiveStorage` فقط `ReadableStorage` را پیاده می‌کند و هر کدی که نوشتن لازم دارد صریحاً `WritableStorage` می‌خواهد. کامپایلر جلوی اشتباه را می‌گیرد. این مثال نشان می‌دهد LSP و ISP چقدر به هم نزدیک‌اند.
+
+کتابخانهٔ استاندارد جاوا هم نمونهٔ بحث‌برانگیزی دارد. رابط `List` عملیاتی اختیاری دارد، مثل `add`، که برخی پیاده‌سازی‌ها از آن‌ها پشتیبانی نمی‌کنند. لیستی که با `List.of(...)` ساخته می‌شود تغییرناپذیر است و `add` روی آن استثنا می‌دهد. مستندات API این رفتار را صریحاً مجاز اعلام کرده‌اند، پس از نظر قرارداد رسمی نقض نیست. اما مصرف‌کننده‌ای که بدون شناخت پیاده‌سازی، تغییرپذیری را فرض کند، در زمان اجرا به استثنا برمی‌خورد. به همین دلیل بعضی تحلیل‌ها این طراحی را از نظر جایگزین‌پذیری رفتاری نقد می‌کنند. این مثال تفاوت «قرارداد رسمی API» و «نقد معماری آن» را نشان می‌دهد و برای تمرین فکر دربارهٔ LSP مفید است.
+
+#### تست قرارداد
+
+بهترین ابزار عملی برای LSP «تست قرارداد» (contract test)[^contract-test] است. به جای اینکه برای هر پیاده‌سازی تست جداگانه بنویسید، یک کلاس تست انتزاعی می‌نویسید که قرارداد رابط را می‌سنجد و هر پیاده‌سازی از آن ارث می‌برد:
+
+```java
+abstract class WritableStorageContract {
+
+  protected abstract WritableStorage create();
+
+  @Test
+  void loadReturnsWhatWasSaved() {
+    var storage = create();
+    storage.save("a.txt", new byte[] {1, 2, 3});
+    assertArrayEquals(new byte[] {1, 2, 3}, storage.load("a.txt"));
+  }
+
+  @Test
+  void savingTwiceOverwrites() {
+    var storage = create();
+    storage.save("a.txt", new byte[] {1});
+    storage.save("a.txt", new byte[] {2});
+    assertArrayEquals(new byte[] {2}, storage.load("a.txt"));
+  }
+}
+
+class InMemoryStorageTest extends WritableStorageContract {
+  @Override
+  protected WritableStorage create() {
+    return new InMemoryStorage();
+  }
+}
+
+class DiskStorageTest extends WritableStorageContract {
+  @Override
+  protected WritableStorage create() {
+    return new DiskStorage(tempDirectory());
+  }
+}
+```
+
+اگر پیاده‌سازی جدیدی بنویسید که قرارداد را نقض می‌کند، همین تست‌ها آن را نشان می‌دهند. این روش به‌ویژه برای جایگزین‌های تست (fake) مهم است: اگر `InMemoryStorage` قرارداد را مثل `DiskStorage` رعایت نکند، تست‌های شما چیزی را نشان می‌دهند که در تولید رخ نمی‌دهد.
+
+#### قاعدهٔ عملی
+
+هر جا زیرنوع ناچار است رفتار نوع پایه را سرکوب کند، نادیده بگیرد یا با استثنا رد کند، وراثت را کنار بگذارید و رابط مشترکی با کمترین تعهد بسازید. قرارداد را باید از دید مصرف‌کننده نوشت. حذف وراثت به معنای حذف رابطه نیست: مربع و مستطیل هنوز از راه `Shape` به هم مربوط‌اند، ولی این رابطه بر پایهٔ توانایی مشترک است، نه شباهت مفهومی.
+
+#### اشتباهات رایج دربارهٔ LSP
+
+- LSP یعنی «زیرکلاس باید کامپایل شود» نیست. سازگاری امضا لازم است ولی کافی نیست؛ مهم سازگاری رفتار است.
+- LSP فقط دربارهٔ وراثت کلاس نیست؛ دربارهٔ هر زیرنوع و هر پیاده‌سازی از یک رابط هم صدق می‌کند.
+- راه‌حل همیشه ساختن سلسله‌مراتب بزرگ‌تر نیست. گاهی بهترین کار کنار گذاشتن وراثت است.
+- پرتاب `UnsupportedOperationException` یا `NotImplementedException` در یک پیاده‌سازی تقریباً همیشه نشانهٔ نقض LSP یا ISP است.
+- بررسی نوع در مصرف‌کننده (`instanceof`) برای رفتار متفاوت، نشانهٔ دیگری است که زیرنوع‌ها جایگزین‌پذیر نیستند.
+- دو متد با امضای یکسان می‌توانند رفتار ناسازگار داشته باشند. قرارداد را به امضا فرو نکاهید.
+
+### اصل چهارم: Interface Segregation Principle (ISP)
+
+> هیچ مصرف‌کننده‌ای نباید به متدهایی وابسته شود که از آن‌ها استفاده نمی‌کند.
+
+این اصل می‌گوید قراردادها را باید از دید مصرف‌کننده شکل داد، نه از دید پیاده‌ساز. رابط بزرگی که برای همه طراحی شده، مصرف‌کننده‌ها را به متدهایی گره می‌زند که هیچ نیازی به آن‌ها ندارند.
+
+این اصل از کار مشاورهٔ مارتین با شرکت زیراکس در میانهٔ دههٔ ۱۹۹۰ بیرون آمد. دردی که او دید این بود که کلاس‌های سنگین یک رابط بزرگ چاپگر را پیاده می‌کردند و مجبور بودند متدهای بی‌ربط را با بدنهٔ خالی یا استثنا پر کنند. هزینهٔ این وابستگی‌های ناخواسته، بازکامپایل بی‌دلیل، بازآزمایی بی‌دلیل و شکنندگی بود.
+
+#### مسئله
+
+وقتی رابطی چند گروه مصرف‌کننده با نیازهای متفاوت دارد، هر تغییر در بخشی از رابط که به یک گروه مربوط است، پیاده‌سازهای گروه‌های دیگر را هم مجبور به بازآزمایی می‌کند. بدتر از آن، پیاده‌سازها مجبور می‌شوند متدهای بی‌ربط را با بدنهٔ بی‌معنا پر کنند و این بدنه‌ها به خطاهای زمان اجرا تبدیل می‌شوند.
+
+#### مثال بد
+
+```java
+public interface Worker {
+  void work();
+  void eat();
+  void sleep();
+}
+
+public class HumanWorker implements Worker {
+  public void work() { System.out.println("کار می‌کند"); }
+  public void eat() { System.out.println("غذا می‌خورد"); }
+  public void sleep() { System.out.println("می‌خوابد"); }
+}
+
+public class RobotWorker implements Worker {
+  public void work() { System.out.println("بی‌وقفه کار می‌کند"); }
+
+  // پیاده‌سازی اجباری متدهایی که ربات هیچ کاربردی برای آن‌ها ندارد
+  public void eat() {
+    throw new UnsupportedOperationException("ربات غذا نمی‌خورد");
+  }
+
+  public void sleep() {
+    throw new UnsupportedOperationException("ربات نمی‌خوابد");
+  }
+}
+```
+
+#### تحلیل خطاها
+
+- `RobotWorker` به دو متد وابسته است که هرگز استفاده نمی‌کند. تعریف رابط از دید پیاده‌ساز تحمیل شده است.
+- بدنه‌های استثنا قرارداد را می‌شکنند: مصرف‌کننده‌ای که `Worker` می‌گیرد حق دارد `eat` را بی‌خطر صدا بزند.
+- هر تغییر در `eat` یا `sleep` برای `HumanWorker`، `RobotWorker` را هم به بازترکیب و بازآزمایی وامی‌دارد.
+- رابط بزرگ دانش نیازهای دو گروه متفاوت را در یک قرارداد جمع کرده است.
+- هر تست `RobotWorker` باید انتظار استثنا از متدهای بی‌ربط را هم ثبت کند.
+
+#### نسخهٔ اصلاح‌شده
+
+<Tabs tabs={['نسخه بد', 'نسخه اصلاح‌شده']} id="isp-tabs">
+  <div slot="tab-0">
+
+```java
+public interface Worker {
+  void work();
+  void eat();
+  void sleep();
+}
+
+public class HumanWorker implements Worker {
+  public void work() { System.out.println("کار می‌کند"); }
+  public void eat() { System.out.println("غذا می‌خورد"); }
+  public void sleep() { System.out.println("می‌خوابد"); }
+}
+
+public class RobotWorker implements Worker {
+  public void work() { System.out.println("بی‌وقفه کار می‌کند"); }
+
+  // پیاده‌سازی اجباری متدهایی که ربات هیچ کاربردی برای آن‌ها ندارد
+  public void eat() {
+    throw new UnsupportedOperationException("ربات غذا نمی‌خورد");
+  }
+
+  public void sleep() {
+    throw new UnsupportedOperationException("ربات نمی‌خوابد");
+  }
+}
+```
+
+  </div>
+  <div slot="tab-1">
+
+```java
+public interface Workable {
+  void work();
+}
+
+public interface Eatable {
+  void eat();
+}
+
+public interface Sleepable {
+  void sleep();
+}
+
+public class HumanWorker implements Workable, Eatable, Sleepable {
+  public void work() { System.out.println("کار می‌کند"); }
+  public void eat() { System.out.println("غذا می‌خورد"); }
+  public void sleep() { System.out.println("می‌خوابد"); }
+}
+
+public class RobotWorker implements Workable {
+  public void work() { System.out.println("بی‌وقفه کار می‌کند"); }
+}
+
+// مصرف‌کننده فقط به آنچه مصرف می‌کند وابسته است
+public class NightShift {
+
+  private final List<Workable> workers;
+
+  public NightShift(List<Workable> workers) {
+    this.workers = workers;
+  }
+
+  public void run() {
+    workers.forEach(Workable::work);
+  }
+}
+```
+
+  </div>
+</Tabs>
+
+رابط بر پایهٔ نیاز مصرف‌کننده به سه قرارداد کوچک تقسیم شده است. `HumanWorker` هر سه را پیاده می‌کند ولی `RobotWorker` فقط آنچه را که به کار می‌برد. `NightShift` فقط کار می‌خواهد و فقط به `Workable` وابسته است.
+
+#### مثال کاربردی: مخزن داده
+
+در پروژه‌های واقعی، ISP بیشتر در رابط‌های دسترسی به داده دیده می‌شود. فرض کنید مخزن محصولات این رابط را دارد:
+
+```java
+public interface ProductRepository {
+  Optional<Product> findById(String id);
+  List<Product> search(String text);
+  void save(Product product);
+  void delete(String id);
+  void bulkImport(List<Product> products);
+}
+```
+
+سرویس نمایش کاتالوگ فقط `findById` و `search` را می‌خواهد، اما به همهٔ رابط وابسته است. اگر سیستم برای خواندن از یک کش یا موتور جست‌وجو (مثل Elasticsearch) استفاده کند، پیاده‌ساز آن مجبور است `save`، `delete` و `bulkImport` را هم پیاده کند. راه‌حل تفکیک بر اساس نقش مصرف‌کننده است:
+
+```java
+public interface ProductReader {
+  Optional<Product> findById(String id);
+  List<Product> search(String text);
+}
+
+public interface ProductWriter {
+  void save(Product product);
+  void delete(String id);
+}
+
+public interface ProductImporter {
+  void bulkImport(List<Product> products);
+}
+
+public class JdbcProductRepository
+    implements ProductReader, ProductWriter, ProductImporter {
+  // پیاده‌سازی همهٔ متدها روی پایگاه داده
+}
+
+public class CachedProductReader implements ProductReader {
+  // فقط خواندن و جست‌وجو
+}
+```
+
+این تفکیک چیز دیگری هم به شما می‌دهد: جدا کردن مسیر خواندن و نوشتن در طراحی (که در معماری‌هایی مثل CQRS[^cqrs] به شکل کامل‌تری دیده می‌شود). لازم نیست حتماً CQRS کامل پیاده کنید؛ همین تفکیک رابط‌ها هم دست شما را برای بهینه‌سازی مسیر خواندن باز می‌گذارد.
+
+#### ISP در طراحی API
+
+ISP فقط به رابط‌های جاوا محدود نیست. اگر یک سرویس REST یا gRPC یک نقطهٔ پایانی بزرگ دارد که یک پاسخ عظیم برمی‌گرداند و هر مصرف‌کننده فقط بخش کوچکی از آن را می‌خواهد، همان مشکل است. هر تغییر در بخشی از پاسخ که به یک مصرف‌کننده مربوط است، مصرف‌کننده‌های دیگر را هم تحت تأثیر می‌گذارد. راه‌حل‌هایی مثل پاسخ‌های جداگانه برای نیازهای متفاوت، انتخاب فیلدها یا GraphQL در واقع همین اصل را در سطح API اجرا می‌کنند.
+
+#### چطور تفکیک را تشخیص بدهیم
+
+برای شناسایی نقض، جدولی بنویسید. سطرها مصرف‌کننده‌های رابط و ستون‌ها متدهای آن باشند. در هر خانه علامت بزنید که آیا آن مصرف‌کننده آن متد را صدا می‌زند. اگر ستون‌های خالی زیادی ببینید، رابط بزرگ‌تر از نیاز است. این تمرین ساده نقض را قبل از اینکه به بازآرایی پرهزینه تبدیل شود نشان می‌دهد و معیار تفکیک را از سلیقه به شواهد می‌برد.
+
+نکتهٔ مهم: تفکیک بر اساس *مصرف‌کننده* انجام می‌شود، نه بر اساس شباهت اسم‌ها. پرسش درست این است: «چه کسی این متدها را صدا می‌زند و از کدام‌ها بی‌نیاز است؟»
+
+#### مراقب تفکیک افراطی باشید
+
+اگر رابط را به ده تکهٔ تک‌متدی بشکنید بی‌آنکه مصرف‌کننده‌های مستقل داشته باشید، فقط تعداد اسم‌ها را بالا برده‌اید. مرز درست جایی است که دو مصرف‌کنندهٔ واقعی به دو دلیل متفاوت به دو مجموعهٔ متفاوت از متدها نیاز دارند.
+
+#### اشتباهات رایج دربارهٔ ISP
+
+- ISP یعنی «همهٔ رابط‌ها را تا جای ممکن کوچک کنید» نیست. رابط کوچک ولی منسجم که یک گروه مصرف‌کننده را کامل راضی می‌کند تصمیم درستی است.
+- معیار دانه‌دانه بودن نیست؛ معیار این است که هیچ مصرف‌کننده‌ای به متدی که استفاده نمی‌کند وابسته نشود.
+- گاهی نگه داشتن رابط بزرگ و ساختن آداپتورهایی در سطح مصرف‌کننده بهتر است. تفکیک همیشه به معنای شکستن قرارداد اصلی نیست.
+- این اصل فقط به رابط‌ها محدود نیست؛ دربارهٔ کلاس‌های انتزاعی و هر قراردادی که مصرف‌کننده به آن وابسته می‌شود هم صدق می‌کند.
+- تفکیک وقتی سود دارد که مصرف‌کننده‌های واقعی و مستقل وجود داشته باشند. شکستن رابط به قطعات بی‌مصرف فقط پیچیدگی ساختاری می‌افزاید.
+
+### اصل پنجم: Dependency Inversion Principle (DIP)
+
+> ماژول‌های سطح بالا و ماژول‌های سطح پایین باید هر دو به انتزاع‌ها وابسته باشند، نه به یکدیگر. انتزاع‌ها نباید به جزئیات وابسته باشند؛ جزئیات باید به انتزاع‌ها وابسته باشند.
+
+این اصل عملی‌ترین و اثرگذارترین اصل SOLID در کد روزمره است. سیاست‌های سطح بالا، یعنی تصمیم‌هایی که ارزش کسب‌وکار را می‌سازند، نباید به جزئیات سطح پایین مثل موتور پایگاه داده، کتابخانهٔ شبکه یا سرویس بیرونی گره بخورند.
+
+این اصل در سال ۱۹۹۶ در مجموعه‌مقاله‌ای از مارتین در *The C++ Report* منتشر شد و بعد در کتاب سال ۲۰۰۲ آمد. «وارونگی» یعنی جهت سنتی وابستگی برعکس می‌شود. در طراحی سنتی سیاست سطح بالا به جزئیات سطح پایین وابسته است. بعد از وارونگی، هر دو به انتزاعی وابسته‌اند که در سمت سیاست تعریف شده است. مالکیت انتزاع نکتهٔ کلیدی است.
+
+#### مسئله
+
+مسئله وقتی پیدا می‌شود که یک سرویس سطح بالا وابستگی‌اش را خودش می‌سازد. اگر `OrderService` مستقیماً `MySQLOrderRepository` را بسازد، به موتور پایگاه داده گره خورده است. تعویض پایگاه داده، افزودن پیاده‌سازی جایگزین برای تست یا نگه داشتن دو پیاده‌سازی موازی، همه این کلاس را تغییر می‌دهند.
+
+#### مثال بد
+
+```java
+public class MySQLOrderRepository {
+
+  public void save(Order order) {
+    System.out.println("ذخیره در MySQL: " + order.id());
+  }
+
+  public Order findById(String id) {
+    System.out.println("خواندن از MySQL: " + id);
+    return null;
+  }
+}
+
+public class OrderService {
+
+  // وابستگی مستقیم به یک پیاده‌سازی مشخص؛ ساخت وابستگی درون خود کلاس
+  private final MySQLOrderRepository repository = new MySQLOrderRepository();
+
+  public void placeOrder(Order order) {
+    // سیاست سطح بالا به جزئیات سطح پایین گره خورده است
+    repository.save(order);
+    System.out.println("سفارش ثبت شد: " + order.id());
+  }
+
+  public long quote(String id) {
+    Order order = repository.findById(id);
+    return order == null ? 0 : order.totalMinor(); // «سفارش نیست» و «مبلغ صفر» یکی شده‌اند
+  }
+}
+
+// مبلغ به کوچک‌ترین واحد پولی و با عدد صحیح (مثل بخش تخفیف‌ها)
+record Order(String id, long totalMinor) {}
+```
+
+#### تحلیل خطاها
+
+- `OrderService` که سیاست سطح بالا را نگه می‌دارد، به کلاسی مشخص از سطح پایین وابسته است. جهت وابستگی از سیاست به جزئیات است.
+- ساخت وابستگی درون کلاس با `new`، آزمودن را می‌کشد: اجرای این سرویس در تست به یک MySQL واقعی نیاز دارد.
+- خود قرارداد مخزن وجود ندارد. قرارداد مشترکی میان سیاست و جزئیات تعریف نشده، بنابراین جایگزینی پیاده‌سازی ممکن نیست.
+- افزودن پیاده‌سازی درون‌حافظه برای تست، ویرایش `OrderService` را لازم می‌کند، با اینکه سیاست کسب‌وکار تغییری نکرده است.
+- بازگشت `null` از `findById` قرارداد نامطمئنی ساخته و پیچیدگی به سطح سیاست منتقل شده است.
+- مرز روشنی میان سیاست و زیرساخت وجود ندارد. نه می‌شود هستهٔ کسب‌وکار را بدون پیاده‌سازی واقعی آزمود و نه می‌شود زیرساخت را بدون بازآزمایی سیاست عوض کرد.
+
+#### نسخهٔ اصلاح‌شده
+
+<Tabs tabs={['نسخه بد', 'نسخه اصلاح‌شده']} id="dip-tabs">
+  <div slot="tab-0">
+
+```java
+public class MySQLOrderRepository {
+
+  public void save(Order order) {
+    System.out.println("ذخیره در MySQL: " + order.id());
+  }
+
+  public Order findById(String id) {
+    System.out.println("خواندن از MySQL: " + id);
+    return null;
+  }
+}
+
+public class OrderService {
+
+  // وابستگی مستقیم به یک پیاده‌سازی مشخص؛ ساخت وابستگی درون خود کلاس
+  private final MySQLOrderRepository repository = new MySQLOrderRepository();
+
+  public void placeOrder(Order order) {
+    // سیاست سطح بالا به جزئیات سطح پایین گره خورده است
+    repository.save(order);
+    System.out.println("سفارش ثبت شد: " + order.id());
+  }
+
+  public long quote(String id) {
+    Order order = repository.findById(id);
+    return order == null ? 0 : order.totalMinor(); // «سفارش نیست» و «مبلغ صفر» یکی شده‌اند
+  }
+}
+
+// مبلغ به کوچک‌ترین واحد پولی و با عدد صحیح (مثل بخش تخفیف‌ها)
+record Order(String id, long totalMinor) {}
+```
+
+  </div>
+  <div slot="tab-1">
+
+```java
+public interface OrderRepository {
+  void save(Order order);
+  Optional<Order> findById(String id);
+}
+
+public class MySQLOrderRepository implements OrderRepository {
+
+  @Override
+  public void save(Order order) {
+    System.out.println("ذخیره در MySQL: " + order.id());
+  }
+
+  @Override
+  public Optional<Order> findById(String id) {
+    return Optional.empty();
+  }
+}
+
+public class InMemoryOrderRepository implements OrderRepository {
+
+  private final Map<String, Order> store = new HashMap<>();
+
+  @Override
+  public void save(Order order) {
+    store.put(order.id(), order);
+  }
+
+  @Override
+  public Optional<Order> findById(String id) {
+    return Optional.ofNullable(store.get(id));
+  }
+}
+
+public class OrderService {
+
+  private final OrderRepository repository;
+
+  // انتزاع در سمت سیاست سطح بالا تعریف شده، و جزئیات به آن وابسته‌اند
+  public OrderService(OrderRepository repository) {
+    this.repository = repository;
+  }
+
+  public void placeOrder(Order order) {
+    repository.save(order);
+    System.out.println("سفارش ثبت شد: " + order.id());
+  }
+
+  // OptionalLong فرق «سفارش وجود ندارد» و «مبلغ سفارش صفر است» را حفظ می‌کند
+  public OptionalLong quote(String id) {
+    return repository.findById(id)
+        .map(order -> OptionalLong.of(order.totalMinor()))
+        .orElse(OptionalLong.empty());
+  }
+}
+
+// مبلغ به کوچک‌ترین واحد پولی و با عدد صحیح (مثل بخش تخفیف‌ها)
+record Order(String id, long totalMinor) {}
+```
+
+  </div>
+</Tabs>
+
+قرارداد `OrderRepository` در سمت سیاست تعریف شده و پیاده‌سازی‌های MySQL و درون‌حافظه به آن وابسته‌اند. `OrderService` وابستگی را از راه سازنده می‌گیرد و هیچ پیاده‌سازی مشخصی را نمی‌شناسد. برای تست، یک `InMemoryOrderRepository` کافی است. برای تولید، `MySQLOrderRepository` تزریق می‌شود.
+
+#### وارونگی یعنی مالکیت، نه تزریق
+
+باید تأکید کرد که وارونگی وابستگی یک تکنیک نگارشی نیست، یک تصمیم دربارهٔ مالکیت است. پرسش تعیین‌کننده این است: انتزاع را چه کسی تعریف می‌کند؟ اگر رابط از دل نیازهای MySQL بیرون بیاید، وابستگی وارونه نشده، حتی اگر از نظر نگارشی از تزریق استفاده کرده باشید. وارونگی وقتی رخ می‌دهد که رابط از نیازهای سیاست سطح بالا زاده شود و جزئیات خودشان را با آن سازگار کنند.
+
+به همین دلیل DIP با «تزریق وابستگی» (Dependency Injection)[^di] یکی نیست. تزریق وابستگی یک روش اجرای کار است: به جای اینکه کلاس وابستگی‌اش را بسازد، از بیرون می‌گیرد. DIP یک اصل طراحی است دربارهٔ جهت وابستگی‌ها. می‌شود وابستگی را تزریق کرد و همچنان به یک کلاس مشخص وابسته ماند.
+
+#### سیم‌کشی در عمل: Spring
+
+در پروژهٔ واقعی، سیم‌کشی وابستگی‌ها را معمولاً یک چارچوب انجام می‌دهد. با Spring:
+
+```java
+@Configuration
+public class AppConfig {
+
+  @Bean
+  public OrderRepository orderRepository(DataSource dataSource) {
+    return new JdbcOrderRepository(dataSource);
+  }
+
+  @Bean
+  public OrderService orderService(OrderRepository repository) {
+    return new OrderService(repository);
+  }
+}
+```
+
+دقت کنید که `OrderService` خودش هیچ حاشیه‌نویسی (annotation) چارچوب را ندارد و کاملاً جاوای ساده است. سیم‌کشی در یک نقطه، یعنی ریشهٔ ترکیب (composition root)[^composition-root]، انجام می‌شود. این طراحی هستهٔ کسب‌وکار را از چارچوب مستقل نگه می‌دارد. اگر فردا بخواهید چارچوب را عوض کنید، فقط همین کلاس پیکربندی تغییر می‌کند.
+
+با این حال، در عمل بسیاری از تیم‌ها `@Service` را مستقیم روی کلاس‌های هسته می‌گذارند و همین هم قابل‌قبول است، به شرط اینکه منطق کسب‌وکار به انواع خاص چارچوب (مثل `HttpServletRequest`) وابسته نشود. معیار اصلی این است که هستهٔ کد بتواند بدون بالا آوردن کل چارچوب آزموده شود.
+
+#### معماری شش‌ضلعی و درگاه/آداپتور
+
+DIP سنگ بنای معماری‌های لایه‌ای و به‌ویژه معماری شش‌ضلعی (hexagonal)[^hexagonal] است. در این معماری هستهٔ سیستم با «درگاه‌هایی» (ports) که خودش تعریف می‌کند با بیرون صحبت می‌کند و «آداپتورها» (adapters)، یعنی پیاده‌سازی‌های واقعی، به این درگاه‌ها وابسته‌اند. هسته هیچ‌گاه نام پایگاه داده، سرور وب یا سرویس بیرونی را نمی‌داند.
+
+ساختار بسته‌ها می‌تواند چنین باشد:
+
+```
+com.shop
+  ├── domain          // مدل و قواعد کسب‌وکار؛ بدون وابستگی بیرونی
+  ├── application     // موارد کاربرد و درگاه‌ها (interfaceها)
+  └── adapter
+        ├── web       // کنترلرها
+        ├── persistence  // پیاده‌سازی مخزن‌ها
+        └── payment   // اتصال به درگاه‌های پرداخت
+```
+
+قاعدهٔ اصلی: پیکان‌های وابستگی همیشه به سمت داخل (`domain`) می‌روند. `adapter` به `application` و `domain` وابسته است ولی `domain` هیچ‌وقت به `adapter` وابسته نیست.
+
+#### نگهبانی خودکار از جهت وابستگی
+
+قاعدهٔ بالا را اگر فقط به یاد آدم‌ها بسپارید، با گذشت زمان نقض می‌شود. ابزارهایی مثل ArchUnit[^archunit] اجازه می‌دهند قاعده را به تست خودکار تبدیل کنید:
+
+```java
+@AnalyzeClasses(packages = "com.shop")
+class ArchitectureTest {
+
+  @ArchTest
+  static final ArchRule domainDoesNotDependOnAdapters =
+      noClasses().that().resideInAPackage("..domain..")
+          .should().dependOnClassesThat().resideInAPackage("..adapter..");
+
+  @ArchTest
+  static final ArchRule domainDoesNotUseSpring =
+      noClasses().that().resideInAPackage("..domain..")
+          .should().dependOnClassesThat().resideInAPackage("org.springframework..");
+}
+```
+
+اگر کسی در `domain` یک `import` از `adapter` بنویسد، ساخت (build) در CI شکست می‌خورد. این همان چیزی است که در ادبیات معماری امروز «تابع تناسب معماری» (architectural fitness function)[^fitness-function] نام دارد: قاعدهٔ طراحی به یک بررسی خودکار تبدیل می‌شود تا با گذر زمان فرسوده نشود.
+
+#### اشتباهات رایج دربارهٔ DIP
+
+- DIP یعنی «استفاده از چارچوب تزریق وابستگی» نیست. تزریق از راه سازنده با پارامتری از نوع رابط کافی است.
+- تزریق وابستگی و وارونگی وابستگی دو چیزند. می‌شود وابستگی را تزریق کرد و همچنان به کلاس مشخص وابسته بود.
+- انتزاع باید به نیاز سیاست سطح بالا پاسخ دهد، نه شکل دقیق جزئیات. اگر رابط، امضای مخصوص MySQL را بازتاب دهد (مثل `ResultSet` در امضا)، وارونگی کامل نشده است.
+- DIP مجوز ساختن یک رابط برای هر کلاس نیست. کلاس‌های خالص و بدون اثر جانبی، مثل یک محاسبه‌گر ریاضی، معمولاً لازم نیست پشت رابط بروند.
+- وارونگی بی‌هزینه نیست. هر انتزاع یک لایهٔ غیرمستقیم می‌سازد که خواندن کد را سخت‌تر می‌کند. آن را فقط در مرزهایی به کار ببرید که می‌خواهید پایدار نگه دارید: پایگاه داده، شبکه، ساعت، فایل، سرویس‌های بیرونی.
+- مرزهای زمان و تصادف را فراموش نکنید. کدی که مستقیم `LocalDateTime.now()` یا `UUID.randomUUID()` صدا می‌زند، آزمودنش دشوار است. تزریق `Clock` و یک تولیدکنندهٔ شناسه، ساده‌ترین نمونهٔ DIP در کد روزمره است.
+
+## همه با هم: یک سیستم سفارش آنلاین
+
+حالا هر پنج اصل را در یک مثال یکپارچه کنار هم می‌گذاریم. سناریو: ثبت نهایی سفارش (checkout) در یک فروشگاه آنلاین. باید این کارها انجام شود: محاسبهٔ قیمت با تخفیف، کم کردن موجودی انبار، پرداخت، ذخیرهٔ سفارش و اطلاع‌رسانی به مشتری.
+
+### نسخهٔ اول: همه‌چیز در یک کلاس
+
+```java
+public class CheckoutService {
+
+  public void checkout(Order order, String paymentType, String cardNumber) {
+    // محاسبهٔ قیمت و تخفیف
+    long total = 0;
+    for (OrderLine line : order.lines()) {
+      total += line.unitPriceMinor() * line.quantity();
+    }
+    if (order.customerId().startsWith("VIP")) {
+      total = total - total * 20 / 100;
+    }
+
+    // موجودی انبار
+    for (OrderLine line : order.lines()) {
+      new WarehouseDb().decrease(line.sku(), line.quantity());
+    }
+
+    // پرداخت
+    if (paymentType.equals("ZARINPAL")) {
+      new ZarinpalClient().pay(cardNumber, total);
+    } else if (paymentType.equals("MELLAT")) {
+      new MellatClient().pay(cardNumber, total);
+    } else {
+      throw new IllegalArgumentException("روش پرداخت ناشناخته");
+    }
+
+    // ذخیره
+    new MySqlOrderDao().insert(order, total);
+
+    // اطلاع‌رسانی
+    new SmsSender().send(order.customerId(), "سفارش شما ثبت شد");
+  }
+}
+```
+
+همین کلاس کوچک را با پنج اصل می‌سنجیم. توجه کنید که همهٔ اصل‌ها در آن به یک اندازه نقض نشده‌اند:
+
+- **SRP**: قیمت‌گذاری، انبار، پرداخت، ذخیره و اطلاع‌رسانی هر کدام ذی‌نفع متفاوتی دارند (فروش، انبار، مالی، زیرساخت، بازاریابی) و همه در یک کلاس‌اند.
+- **OCP**: روش پرداخت جدید یعنی ویرایش این متد. قاعدهٔ تخفیف جدید هم همین‌طور.
+- **LSP**: این نسخه به‌خودی‌خود LSP را نقض نمی‌کند، چون هیچ زیرنوعی وجود ندارد. رشتهٔ `paymentType` و زنجیرهٔ شرط‌ها بیشتر مشکل OCP و نبود قرارداد نوع‌دار است. اما همین نبود قرارداد، بعداً راه را برای نقض LSP باز می‌کند: اگر روش‌های پرداخت پشت یک رابط بیایند و یکی هنگام شکست استثنا بدهد و دیگری کد خطا برگرداند، جایگزین‌پذیر نیستند. در نسخهٔ اصلاح‌شده این را با قرارداد `PaymentResult` پوشش می‌دهیم.
+- **ISP**: وابسته بودن همه‌چیز به یک کلاس بزرگ، بیشتر مسئلهٔ SRP و کاپلینگ است. ISP وقتی مطرح می‌شود که یک رابط بزرگ داشته باشیم و مصرف‌کننده‌ای مجبور به وابستگی به متدهایی باشد که صدا نمی‌زند. این نسخه رابطی ندارد که چنین نقضی را نشان دهد؛ ISP در نسخهٔ اصلاح‌شده با درگاه‌های کوچک و متمرکز (`PaymentGateway`، `StockService`، `CustomerNotifier`) رعایت می‌شود و مثال ISP در بخش خودش آمده است.
+
+یک طراحی بد لزوماً هر پنج اصل را نقض نمی‌کند. این مثال SRP، OCP و DIP را مستقیم نقض می‌کند و برای LSP و ISP فقط زمینه‌ساز است.
+- **DIP**: همه‌چیز با `new` ساخته شده و تست بدون پایگاه داده، پیامک و درگاه واقعی ممکن نیست.
+
+نکتهٔ دیگر هم هست: اگر پرداخت موفق شود ولی ذخیرهٔ سفارش شکست بخورد، پول گرفته شده ولی سفارشی ثبت نشده است. این مسئلهٔ هماهنگی میان درگاه خارجی و پایگاه داده است و در بخش بعدی به آن اشاره می‌کنیم.
+
+### نسخهٔ دوم: طراحی با اصول SOLID
+
+<Tabs tabs={['نسخه بد', 'نسخه اصلاح‌شده']} id="checkout-tabs">
+  <div slot="tab-0">
+
+```java
+public class CheckoutService {
+
+  public void checkout(Order order, String paymentType, String cardNumber) {
+    long total = 0;
+    for (OrderLine line : order.lines()) {
+      total += line.unitPriceMinor() * line.quantity();
+    }
+    if (order.customerId().startsWith("VIP")) {
+      total = total - total * 20 / 100;
+    }
+
+    for (OrderLine line : order.lines()) {
+      new WarehouseDb().decrease(line.sku(), line.quantity());
+    }
+
+    if (paymentType.equals("ZARINPAL")) {
+      new ZarinpalClient().pay(cardNumber, total);
+    } else if (paymentType.equals("MELLAT")) {
+      new MellatClient().pay(cardNumber, total);
+    } else {
+      throw new IllegalArgumentException("روش پرداخت ناشناخته");
+    }
+
+    new MySqlOrderDao().insert(order, total);
+    new SmsSender().send(order.customerId(), "سفارش شما ثبت شد");
+  }
+}
+```
+
+  </div>
+  <div slot="tab-1">
+
+```java
+// ---------- مدل دامنه ----------
+public record OrderLine(String sku, int quantity, long unitPriceMinor) {}
+
+public record Order(String id, String customerId, List<OrderLine> lines) {
+
+  // فهرست غیرقابل‌تغییر؛ رکورد به‌تنهایی فقط تغییرناپذیر سطحی است
+  // (OrderLine خودش رکوردی با مؤلفه‌های ساده است)
+  public Order {
+    lines = List.copyOf(lines);
+  }
+
+  public long totalMinor() {
+    return lines.stream()
+        .mapToLong(l -> l.unitPriceMinor() * l.quantity())
+        .sum();
+  }
+}
+
+public sealed interface PaymentResult permits PaymentResult.Success, PaymentResult.Failure {
+  record Success(String transactionId) implements PaymentResult {}
+  record Failure(String reason) implements PaymentResult {}
+}
+
+// ---------- درگاه‌ها (در سمت سیاست تعریف می‌شوند: DIP) ----------
+public interface PaymentGateway {
+  PaymentResult charge(String orderId, long amountMinor);
+}
+
+public interface StockService {
+  boolean reserve(List<OrderLine> lines);
+  void release(List<OrderLine> lines);
+}
+
+public interface OrderRepository {
+  void save(Order order, long paidAmountMinor);
+}
+
+public interface CustomerNotifier {
+  void orderPlaced(String customerId, String orderId);
+}
+
+// ---------- قیمت‌گذاری (SRP + OCP) ----------
+public interface DiscountPolicy {
+  long discountFor(Order order);
+}
+
+public class VipDiscount implements DiscountPolicy {
+  @Override
+  public long discountFor(Order order) {
+    return order.customerId().startsWith("VIP") ? order.totalMinor() * 20 / 100 : 0;
+  }
+}
+
+public class PricingService {
+
+  private final List<DiscountPolicy> policies;
+
+  public PricingService(List<DiscountPolicy> policies) {
+    this.policies = policies;
+  }
+
+  public long finalPrice(Order order) {
+    long discount = policies.stream().mapToLong(p -> p.discountFor(order)).sum();
+    return Math.max(0, order.totalMinor() - discount);
+  }
+}
+
+// ---------- هماهنگ‌کننده (فقط ترتیب کارها را می‌داند) ----------
+public class CheckoutService {
+
+  private final PricingService pricing;
+  private final StockService stock;
+  private final PaymentGateway payment;
+  private final OrderRepository orders;
+  private final CustomerNotifier notifier;
+
+  public CheckoutService(PricingService pricing,
+                         StockService stock,
+                         PaymentGateway payment,
+                         OrderRepository orders,
+                         CustomerNotifier notifier) {
+    this.pricing = pricing;
+    this.stock = stock;
+    this.payment = payment;
+    this.orders = orders;
+    this.notifier = notifier;
+  }
+
+  public CheckoutResult checkout(Order order) {
+    long amount = pricing.finalPrice(order);
+
+    if (!stock.reserve(order.lines())) {
+      return CheckoutResult.outOfStock();
+    }
+
+    PaymentResult result = payment.charge(order.id(), amount);
+    return switch (result) {
+      case PaymentResult.Success s -> {
+        orders.save(order, amount);
+        notifier.orderPlaced(order.customerId(), order.id());
+        yield CheckoutResult.ok(s.transactionId());
+      }
+      case PaymentResult.Failure f -> {
+        stock.release(order.lines());
+        yield CheckoutResult.paymentFailed(f.reason());
+      }
+    };
+  }
+}
+```
+
+  </div>
+</Tabs>
+
+(نوع `CheckoutResult` را برای کوتاه ماندن حذف کرده‌ایم. می‌تواند یک رابط مهر‌شده مشابه `PaymentResult` باشد.)
+
+### هر اصل کجا نقش دارد
+
+- **SRP**: قیمت‌گذاری (`PricingService`)، موجودی، پرداخت، ذخیره و اطلاع‌رسانی هر کدام جای خودشان را دارند. `CheckoutService` فقط ترتیب را می‌داند.
+- **OCP**: تخفیف جدید یعنی یک `DiscountPolicy` جدید. درگاه پرداخت جدید یعنی یک پیاده‌سازی جدید از `PaymentGateway`.
+- **LSP**: همهٔ پیاده‌سازی‌های `PaymentGateway` باید قرارداد یکسانی داشته باشند: همیشه `PaymentResult` برگردانند و برای خطاهای کسب‌وکاری (مثلاً کارت رد شد) استثنا ندهند. این را با تست قرارداد تضمین می‌کنیم.
+- **ISP**: `CustomerNotifier` فقط همان چیزی را دارد که سفارش لازم دارد. اگر بازاریابی بعداً کمپین‌های ایمیلی بخواهد، رابط جداگانهٔ خودش را می‌گیرد.
+- **DIP**: همهٔ وابستگی‌های بیرونی از طریق درگاه‌هایی هستند که هسته تعریف کرده است.
+
+### تست کامل هستهٔ کسب‌وکار
+
+```java
+class CheckoutServiceTest {
+
+  static class FakeStock implements StockService {
+    boolean available = true;
+    int released = 0;
+    @Override public boolean reserve(List<OrderLine> lines) { return available; }
+    @Override public void release(List<OrderLine> lines) { released++; }
+  }
+
+  static class FakeOrders implements OrderRepository {
+    final List<Order> saved = new ArrayList<>();
+    @Override public void save(Order order, long paid) { saved.add(order); }
+  }
+
+  private final Order order = new Order("o1", "VIP-7",
+      List.of(new OrderLine("sku-1", 2, 100_000)));
+
+  @Test
+  void savesOrderAndNotifiesOnSuccess() {
+    var stock = new FakeStock();
+    var orders = new FakeOrders();
+    var notified = new ArrayList<String>();
+
+    var service = new CheckoutService(
+        new PricingService(List.of(new VipDiscount())),
+        stock,
+        (id, amount) -> new PaymentResult.Success("tx-1"),
+        orders,
+        (customer, orderId) -> notified.add(orderId));
+
+    service.checkout(order);
+
+    assertEquals(1, orders.saved.size());
+    assertEquals(List.of("o1"), notified);
+  }
+
+  @Test
+  void releasesStockWhenPaymentFails() {
+    var stock = new FakeStock();
+    var orders = new FakeOrders();
+
+    var service = new CheckoutService(
+        new PricingService(List.of()),
+        stock,
+        (id, amount) -> new PaymentResult.Failure("رد شد"),
+        orders,
+        (customer, orderId) -> {});
+
+    service.checkout(order);
+
+    assertEquals(1, stock.released);
+    assertTrue(orders.saved.isEmpty());
+  }
+}
+```
+
+بدون هیچ پایگاه داده یا درگاه واقعی، دو سناریوی مهم کسب‌وکار را می‌آزماییم. این همان سودی است که اصول SOLID در عمل می‌دهند.
+
+### چند نکتهٔ مهندسی دربارهٔ این طراحی
+
+- **سازگاری تراکنش‌ها**: در نسخهٔ بالا اگر ذخیرهٔ سفارش بعد از پرداخت موفق شکست بخورد، پول گرفته شده ولی سفارش ثبت نشده است. الگوی صندوق خروجی (outbox pattern)[^outbox] به‌تنهایی این ناسازگاری را حل نمی‌کند. آن الگو برای ثبت اتمی تغییر پایگاه داده و رویدادِ در انتظار انتشار مفید است. هماهنگی میان درگاه پرداخت و پایگاه داده به مدیریت وضعیت عملیات، تلاش مجدد، استعلام وضعیت پرداخت و در صورت لزوم اقدام جبرانی (مثل بازپرداخت) نیاز دارد. برای هماهنگی مراحل مختلف کسب‌وکار می‌توان از ساگا (saga)[^saga] یا یک گردش‌کار مشابه استفاده کرد. SOLID این مسئله را خودکار حل نمی‌کند، ولی مرزهای تمیز پیاده‌سازی چنین راه‌حل‌هایی را آسان‌تر می‌کند.
+- **یکتایی عملیات** (idempotency)[^idempotency]: برای کاهش خطر شارژ تکراری، می‌توان یک کلید idempotency پایدار و یکتا برای همان عملیات پرداخت (مثلاً مشتق‌شده از `orderId`) به درگاه فرستاد، مشروط بر اینکه درگاه از این قابلیت پشتیبانی کند و درخواست‌های تکراری با همان کلید را طبق قرارداد خود مدیریت کند. صرف یکتا بودن شناسهٔ سفارش، بدون پشتیبانی درگاه، تضمینی نمی‌دهد.
+- **شکست‌های دیگر**: این کد یک نمونهٔ مفهومی است، نه گردش کار پرداخت آمادهٔ تولید. در عمل باید timeout هنگام تماس با درگاه، شکست ارسال اعلان، تلاش دوباره (retry) و خطاهای تکرارشونده هم مدیریت شوند. مثلاً اگر درگاه timeout بدهد، معلوم نیست پول کم شده یا نه و باید قبل از آزاد کردن موجودی وضعیت واقعی استعلام شود.
+- **مشاهده‌پذیری**: هر مرز می‌تواند محل ثبت لاگ و معیارها (metrics) باشد. با DIP می‌توانید یک «تزئین‌کننده» (decorator) بنویسید که هر `PaymentGateway` را بپوشاند و زمان پاسخ را ثبت کند، بدون دست زدن به کد اصلی.
+
+## SOLID در سطوح دیگر
+
+این اصول فقط برای کلاس‌ها نیستند. همان ایده‌ها در سطوح دیگر هم کاربرد دارند.
+
+**در سطح تابع**: یک تابع که هم اعتبارسنجی می‌کند، هم محاسبه می‌کند، هم پایگاه داده را صدا می‌زند، SRP را نقض می‌کند. تابع خالص (pure function) که فقط ورودی می‌گیرد و خروجی می‌دهد، هم آزمودنش ساده است و هم قابل ترکیب. در برنامه‌نویسی تابعی، DIP اغلب با ارسال تابع به عنوان پارامتر انجام می‌شود، نه با رابط. در جاوا، رابط‌های تابعی مثل `Function` و `Supplier` همین کار را می‌کنند.
+
+**در سطح ماژول و بسته**: بسته‌هایی که همیشه با هم تغییر می‌کنند باید کنار هم باشند (شبیه SRP)، و بسته‌های پایدار نباید به بسته‌های ناپایدار وابسته باشند (شبیه DIP). مارتین این ایده‌ها را در «اصول بسته‌بندی» (package principles) جداگانه هم توضیح داده است. ماژول‌های جاوا (JPMS) یا ماژول‌های Gradle و Maven ابزار اجرای این مرزها هستند.
+
+**در سطح سرویس (میکروسرویس)**: SRP می‌گوید هر سرویس باید پاسخ‌گوی یک حوزهٔ کسب‌وکاری و تحت مالکیت یک تیم باشد. اگر برای تغییر یک قابلیت ساده باید سه سرویس را هم‌زمان عوض و منتشر کنید، مرزها را اشتباه کشیده‌اید. این اغلب نشانهٔ «تکه‌تکه کردن بر اساس لایهٔ فنی» به جای «تکه‌تکه کردن بر اساس حوزهٔ کسب‌وکار» است. ISP می‌گوید API هر سرویس باید بر اساس نیاز مصرف‌کننده‌ها طراحی شود، و DIP می‌گوید سرویس‌ها باید به قراردادهای پایدار (مثل نسخه‌بندی‌شدهٔ API) وابسته باشند، نه به جزئیات پیاده‌سازی هم.
+
+یک نکتهٔ عملی: بسیاری از تیم‌ها بهتر است با یک «مونولیت ماژولار» (modular monolith)[^modular-monolith] شروع کنند. در این روش کل برنامه یک واحد استقرار است ولی داخلش به ماژول‌هایی با مرز روشن تقسیم شده. هزینهٔ عملیاتی میکروسرویس را ندارد ولی مزیت مرزهای تمیز را می‌دهد و بعداً هر ماژول در صورت نیاز می‌تواند سرویس مستقل شود.
+
+**در رابط کاربری**: در فرانت‌اند، مؤلفه‌ای که هم داده را می‌گیرد، هم منطق کسب‌وکار دارد و هم ظاهر را می‌سازد، چند ذی‌نفع را مخلوط کرده است. جدا کردن «مؤلفهٔ نمایش» از «منطق داده» (مثلاً با هوک‌ها یا مدل‌های نما) همان SRP است.
+
+## روش‌های امروزی برای به‌کارگیری SOLID
+
+دانستن اصول یک چیز است و به‌کارگیری درست آن‌ها در پروژهٔ واقعی چیز دیگر. این بخش روش‌هایی را مرور می‌کند که بر اساس تجربهٔ مهندسی در بسیاری از تیم‌ها به کار می‌روند و پیشنهادهای نویسنده‌اند، نه معیار رسمی.
+
+### بازآرایی گام‌به‌گام به جای طراحی بزرگ اولیه
+
+بازآرایی (refactoring)[^refactoring] یعنی تغییر ساختار داخلی کد بدون تغییر رفتار بیرونی. مسیر پیشنهادی:
+
+1. ابتدا ساده‌ترین نسخهٔ کارآمد را بنویسید.
+2. برای رفتار فعلی تست بنویسید.
+3. وقتی دلیل تغییر دوم یا سوم ظاهر شد، در جهت اصل مربوط بازآرایی کنید.
+4. بعد از هر گام کوچک، تست‌ها را اجرا کنید.
+
+بازآرایی‌های رایج که مستقیماً به SOLID می‌رسند: «استخراج کلاس» (Extract Class) برای SRP، «جایگزینی شرط با چندریختی» (Replace Conditional with Polymorphism) برای OCP، «استخراج رابط» (Extract Interface) برای DIP و ISP، «جایگزینی وراثت با ترکیب» (Replace Inheritance with Delegation) برای LSP.
+
+### تست‌محوری و طراحی
+
+در توسعهٔ تست‌محور (TDD)[^tdd] وقتی اول تست می‌نویسید، سختی نوشتن تست خودش یک سیگنال طراحی است. اگر برای تست یک کلاس مجبورید ده شیء بسازید، احتمالاً SRP یا DIP نقض شده است. اگر نمی‌توانید زمان یا تصادف را کنترل کنید، `Clock` و تولیدکنندهٔ تصادفی را تزریق کنید. به این ترتیب تست‌ها طراحی را هدایت می‌کنند و SOLID به طور طبیعی بیرون می‌آید، نه به عنوان یک قانون بیرونی.
+
+### انواع جایگزین تست: ساختگی، شبیه‌ساز، جعلی
+
+برای جایگزین کردن وابستگی‌ها در تست، چند نوع وجود دارد[^test-doubles]. «جعلی» (fake) یک پیاده‌سازی ساده ولی واقعی است، مثل `InMemoryOrderRepository`. «ماک» (mock) شیئی است که انتظارهای مربوط به تماس‌ها را بررسی می‌کند. «استاب» (stub) فقط پاسخ‌های ثابت می‌دهد. توصیهٔ رایج امروز این است که تا جای ممکن از جعلی‌ها استفاده کنید، چون تست‌ها را به رفتار وابسته می‌کنند، نه به جزئیات پیاده‌سازی (مثل ترتیب دقیق فراخوانی متدها). ولی به یاد داشته باشید که هر جعلی خودش باید با تست قرارداد در برابر پیاده‌سازی واقعی سنجیده شود، وگرنه تست‌های شما چیزی را می‌آزمایند که در تولید وجود ندارد.
+
+### کار با کد قدیمی
+
+بیشتر ما با کد موجود کار می‌کنیم، نه کد جدید. مایکل فدرز در کتاب *Working Effectively with Legacy Code* روشی ارائه کرده که خلاصه‌اش این است:
+
+- ابتدا «تست شناسایی» (characterization test)[^characterization-test] بنویسید که رفتار فعلی را همان‌طور که هست ثبت کند، حتی اگر رفتار فعلی اشکال داشته باشد.
+- یک «درز» (seam)[^seam] پیدا کنید: نقطه‌ای که بتوانید رفتار را بدون ویرایش کد در آن جایگزین کنید، مثلاً با استخراج یک رابط.
+- با اطمینان تست‌ها، گام‌به‌گام بازآرایی کنید.
+
+برای بازآرایی‌های بزرگ‌تر، الگوی «انجیر خفه‌کننده» (strangler fig)[^strangler] پیشنهاد می‌شود: به جای بازنویسی یک‌باره، قابلیت‌ها را یکی‌یکی به ماژول جدید منتقل می‌کنید و سیستم قدیمی را به‌تدریج کوچک می‌کنید.
+
+### قاعدهٔ اسکات‌های پیشاهنگ
+
+یک قاعدهٔ ساده و مفید: هر وقت فایلی را برای تغییر باز می‌کنید، آن را کمی تمیزتر از چیزی که پیدا کردید تحویل دهید. لازم نیست همه‌چیز را یک‌باره درست کنید. بازآرایی‌های کوچک و مستمر، در طول زمان، کد را به سمت SOLID می‌برند.
+
+### ثبت تصمیم‌ها
+
+وقتی یک مرز مهم معماری را انتخاب می‌کنید (مثلاً «هستهٔ دامنه به Spring وابسته نباشد»)، تصمیم را در یک سند کوتاه به نام رکورد تصمیم معماری (ADR)[^adr] ثبت کنید: زمینه، تصمیم، دلیل، و پیامدها. این کار از دو مشکل جلوگیری می‌کند: اعضای جدید تیم دلیل مرزها را می‌دانند، و وقتی شرایط عوض شد می‌توانید آگاهانه تصمیم را بازنگری کنید.
+
+### فهرست وارسی بازبینی کد
+
+برای بازبینی کد (code review) می‌توانید این پرسش‌ها را به کار ببرید:
+
+- این کلاس یا تابع برای چند گروه از ذی‌نفع‌ها تغییر می‌کند؟ (SRP)
+- افزودن حالت تازه نیازمند ویرایش کد موجود است؟ (OCP)
+- آیا زیرنوع‌ها هیچ‌جا استثنای «پشتیبانی نمی‌شود» پرتاب می‌کنند؟ (LSP)
+- آیا مصرف‌کننده‌ها به متدهایی وابسته‌اند که صدا نمی‌زنند؟ (ISP)
+- آیا هستهٔ کسب‌وکار به چارچوب، پایگاه داده یا سرویس بیرونی اشاره می‌کند؟ (DIP)
+- آیا برای این انتزاع حداقل دو پیاده‌سازی یا یک دلیل واضح تست‌پذیری وجود دارد؟ (جلوگیری از انتزاع بی‌مصرف)
+
+## ارتباط با اصول دیگر
+
+SOLID تنها اصل طراحی نیست و با اصول دیگر هم‌پوشانی و گاهی تنش دارد.
+
+- **DRY**[^dry] می‌گوید دانش را تکرار نکن. ولی همان‌طور که در مثال SRP دیدیم، حذف تکرار میان دو ذی‌نفع متفاوت می‌تواند مضر باشد. تکرار تصادفی (دو کد شبیه که دلیل تغییرشان متفاوت است) با تکرار واقعی (یک دانش واحد که دو جا کپی شده) فرق دارد.
+- **KISS** می‌گوید ساده نگه دار. SOLID اگر افراطی اجرا شود با KISS در تضاد است.
+- **YAGNI**[^yagni] می‌گوید چیزی را که امروز لازم نداری نساز. این مهم‌ترین تنش با SOLID است و در بخش نقدها به آن برمی‌گردیم.
+- **قانون دمتر** (Law of Demeter)[^demeter] می‌گوید فقط با همسایه‌های نزدیکت صحبت کن و زنجیره‌ای مثل `a.getB().getC().doIt()` ننویس. این قانون وابستگی‌های پنهان را کم می‌کند و با DIP و ISP هم‌جهت است.
+- **ترکیب به جای وراثت**: وراثت قوی‌ترین نوع کاپلینگ است. بیشتر نقض‌های LSP با ترجیح ترکیب حل می‌شوند.
+- **انسجام بالا و کاپلینگ پایین**: این دو هدف اصلی تقریباً همهٔ اصول طراحی‌اند و SOLID راه‌های مشخصی برای رسیدن به آن‌هاست.
+- **GRASP**[^grasp] مجموعه‌ای از الگوهای تخصیص مسئولیت است که با SRP هم‌خانواده است.
+
+## نقدهای امروزی بر SOLID
+
+SOLID در بیش از دو دههٔ گذشته به یکی از پرتکرارترین چارچوب‌های طراحی تبدیل شده و همین محبوبیت آن را هدف نقد کرده است. نقد منصفانه به معنای رد SOLID نیست؛ به معنای روشن کردن مرزهای کاربرد آن است.
+
+مهم‌ترین نقد معاصر از دن نورث[^dan-north] است. او در نوشته‌ای در سال ۲۰۲۱ با نام *CUPID: the back story* به SOLID نقد وارد کرد و سپس در سال ۲۰۲۲ در نوشتهٔ *CUPID: for joyful coding* جایگزین پیشنهادی خود را معرفی کرد. استدلال مرکزی او این است که «اصل» بودن، آن‌هم یک قانون کلی که در هر بستری یکسان اجرا شود، با ماهیت طراحی نرم‌افزار نمی‌خواند. به جای آن، او به «ویژگی‌های» کدی نگاه می‌کند که کار کردن با آن لذت‌بخش است. او ادعا نمی‌کند این اصول بی‌ارزش‌اند؛ ادعایش این است که نباید آن‌ها را جای تفکر نشاند.
+
+### مهندسی بیش از حد
+
+وقتی SOLID با جدیت آیینی اجرا شود، به تکثیر رابط‌ها، کارخانه‌ها (factory) و کلاس‌های انتزاعی منجر می‌شود، آن هم برای مسائلی که هرگز تغییر نمی‌کنند. اگر هر کلاس فقط یک همکار داشته باشد، هر رابط فقط یک پیاده‌ساز و هر نقطهٔ گسترش هرگز گسترش نیابد، انتزاع هزینه‌اش را پس نداده است. معیاری برای تشخیص: اگر حذف یک رابط هیچ تغییری در رفتار سیستم نمی‌دهد و فقط تعداد لایه‌ها را کم می‌کند، به احتمال زیاد آن انتزاع بیهوده بوده است.
+
+نمونهٔ آشنا از این مشکل، کد جاوایی است که برای هر چیز یک `Service`، یک `ServiceImpl`، یک `ServiceFactory` و یک `ServiceFactoryImpl` دارد، بدون اینکه هیچ‌کدام دلیل تغییر مستقلی داشته باشند.
+
+### تنش با YAGNI
+
+SOLID می‌گوید برای گسترش طراحی کن. YAGNI می‌گوید برای آینده‌ای که نمی‌بینی نساز. در سیستمی جوان این دو در تضاد مستقیم‌اند. اگر برای هر ساختار ممکن انتزاع بسازید، هزینه‌ای می‌پردازید که شاید هیچ‌وقت برنگردد. اگر هیچ انتزاعی نسازید، شاید روزی در کدی گیر کنید که هیچ‌جایش قابل تعویض نیست. راه میانه را در بخش بعد، با بازآرایی در لحظهٔ نیاز، توضیح می‌دهیم.
+
+### وابستگی به بستر
+
+یک نمونهٔ اولیهٔ استارتاپی، یک پروژهٔ پژوهشی و یک سیستم بانکی نباید به یک شکل به SOLID نگاه کنند. این اصول در دل پروژه‌های سازمانی و دیرپا با چند تیم و چرخهٔ تغییر طولانی شکل گرفتند و همان قیدوبندها را بازتاب می‌دهند. سیستمی که قرار نیست از یک فصل بیشتر عمر کند از هزینهٔ انتزاع کمتر سود می‌برد.
+
+### وابستگی به زبان
+
+بخشی از SOLID پاسخ به محدودیت‌های جاوا و زبان‌های مشابه در دههٔ ۱۹۹۰ است. در زبان‌هایی مثل Go و Rust رابط‌ها و تزریق وابستگی شکل دیگری دارند. در Go رابط‌ها ضمنی‌اند و معمولاً در سمت مصرف‌کننده تعریف می‌شوند که طبیعی‌ترین شکل ISP و DIP است. در زبان‌های تابعی، چارچوب شی‌گرایانهٔ این اصول کم‌رنگ‌تر است و بسیاری از مسئله‌ها با توابع مرتبهٔ بالاتر (higher-order functions) و داده‌های تغییرناپذیر حل می‌شوند. این مقاله روی جاواست، ولی جاوا یک انتخاب است، نه حقیقت جهانی.
+
+### CUPID به عنوان عدسی مکمل
+
+دن نورث به جای اصول، پنج «ویژگی» پیشنهاد می‌کند که کد را لذت‌بخش می‌کنند:
+
+- **قابل ترکیب** (Composable): با چیزهای دیگر خوب کار می‌کند، سطح تماس کوچک و وابستگی‌های کم دارد.
+- **فلسفهٔ یونیکس** (Unix philosophy): یک کار را خوب انجام می‌دهد و خروجی‌اش ورودی برنامهٔ دیگر می‌شود.
+- **قابل پیش‌بینی** (Predictable): همان کاری را می‌کند که انتظار دارید و هر بار یکسان رفتار می‌کند.
+- **همخوان با زبان و محیط** (Idiomatic): با عرف زبان و پروژه می‌خواند.
+- **مبتنی بر دامنه** (Domain-based): ساختار و نام‌ها زبان حوزهٔ کسب‌وکار را بازتاب می‌دهند.
+
+این‌ها را رقیب SOLID نبینید، بلکه عدسی دیگری برای نگاه به همان کد. برای نمونه، «قابل ترکیب» با ISP و DIP هم‌جهت است و «مبتنی بر دامنه» با SRP، چون مرزها را بر اساس معنا در کسب‌وکار می‌کشد.
+
+### انصاف نسبت به SOLID
+
+همان اصولی که در دست ناآشنا به انتزاع بی‌مصرف می‌انجامند، در دست باتجربه ابزاری برای مهار پیچیدگی‌اند. ارزش یک اصل در توانایی آن برای پاسخ‌گویی به شرایط گوناگون است، نه ظرفیت آن برای اجرای مکانیکی. اصول باید قضاوت مهندسی را هدایت کنند، نه جای آن بنشینند.
+
+## کی و کجا SOLID را جدی بگیریم؟
+
+بعد از آشنایی با نقدها، پرسش درست این نیست که «SOLID خوب است یا بد»، بلکه این است که «در کدام بستر، کدام اصل، با چه میزان سرمایه‌گذاری سود می‌دهد».
+
+### نشانه‌هایی که سرمایه‌گذاری بر SOLID را توجیه می‌کنند
+
+- کد قرار است سال‌ها زندگی کند و بارها تغییر کند. هزینهٔ انتزاع با گذر زمان سرشکن می‌شود.
+- چند تیم روی یک کدبیس کار می‌کنند و مرز مسئولیت‌ها باید روشن باشد.
+- نوع تغییرات پیش‌رو قابل پیش‌بینی و مکرر است: قواعد قیمت‌گذاری، درگاه‌های پرداخت، قالب‌های گزارش، کانال‌های اطلاع‌رسانی.
+- پوشش تست اهمیت بالایی دارد و باید بتوان بخش‌ها را بدون محیط بیرونی آزمود.
+- کد بیشتر خوانده می‌شود تا نوشته شود و خوانایی ارزش مستقیم دارد.
+- سیستم دامنهٔ پیچیده دارد (مالی، بیمه، سلامت) که قواعدش مدام تغییر می‌کنند.
+
+### نشانه‌هایی که SOLID هنوز زود است
+
+- اسکریپت‌های یک‌بارمصرف برای مهاجرت داده یا پردازش موقت.
+- نمونهٔ اولیه برای آزمودن یک فرض که قرار است بعد از نتیجه دور انداخته شود.
+- ابزارهای تک‌نفره که فقط یک نفر از آن‌ها استفاده می‌کند.
+- کدی که قرار نیست یک فصل را ببیند.
+
+### بلوغ تیم
+
+نشانه‌های بالا دربارهٔ ساختار کد بودند، ولی توان تیم برای نگه‌داشت انتزاع‌ها هم به همان اندازه مهم است. انتزاعی که تیم درکش نمی‌کند به ضدالگو تبدیل می‌شود. در چنین وضعی بازآرایی گام‌به‌گام همراه با آموزش، از طراحی جامع و یک‌جا بهتر است.
+
+### راه میانهٔ پیشنهادی
+
+به جای پیش‌دستی، به سمت SOLID بازآرایی کنید. اول ساده‌ترین نسخهٔ کارآمد را بنویسید، بگذارید دلیل تغییر دوم ظاهر شود، سپس در جهت اصل مربوط بازآرایی کنید. این رویکرد هم هزینهٔ انتزاع زودهنگام را کم می‌کند و هم اجازه می‌دهد مرزهای واقعی، نه خیالی، شکل تصمیم را تعیین کنند. تصمیم برگشت‌پذیر می‌ماند: تا وقتی دلیل تغییر دومی نیامده سادگی حفظ می‌شود.
+
+یک راهنمای کوتاه برای تصمیم:
+
+| وضعیت | پیشنهاد |
+|-------|---------|
+| تغییر یک‌بار اتفاق افتاد | ساده بنویس، انتزاع نساز |
+| همان تغییر برای بار دوم آمد | کپی را تحمل کن ولی یادداشت بگذار |
+| برای بار سوم آمد | بازآرایی کن و انتزاع مناسب بساز |
+| مرز با سیستم بیرونی (پایگاه داده، پرداخت، شبکه) | از اول پشت رابط ببر، چون تغییر و تست‌پذیری تقریباً قطعی است |
+| منطق خالص کسب‌وکار بدون اثر جانبی | معمولاً بدون رابط هم خوب است |
+
+## تمرین‌های پیشنهادی
+
+برای اینکه این مطالب در ذهن بنشینند، این تمرین‌ها را امتحان کنید:
+
+1. **شکار نقض SRP**: در پروژهٔ خودتان با گیت، پنج فایلی را که بیشترین تعداد کامیت دارند پیدا کنید. برای هر کدام بنویسید چه ذی‌نفع‌هایی آن را تغییر داده‌اند.
+2. **بازآرایی OCP**: یک `switch` یا `if/else` بر اساس نوع در کدتان پیدا کنید. بررسی کنید آیا محور تنوع واقعی است (سه بار تکرار شده) یا فرضی. اگر واقعی بود، با استراتژی یا رابط مهر‌شده بازآرایی کنید.
+3. **تست قرارداد**: برای یکی از رابط‌هایتان که دو پیاده‌سازی دارد (مثلاً واقعی و درون‌حافظه) یک کلاس تست قرارداد بنویسید. تست‌های قرارداد را برای هر دو پیاده‌سازی اجرا کنید و بررسی کنید که هر دو رفتار مورد انتظار رابط را رعایت می‌کنند یا خیر.
+4. **جدول ISP**: برای یک رابط بزرگ، جدول مصرف‌کننده در برابر متد بکشید و ستون‌های خالی را پیدا کنید.
+5. **قاعدهٔ معماری**: با ArchUnit یک قاعده بنویسید که هستهٔ دامنه به بسته‌های زیرساختی وابسته نشود و آن را در CI اجرا کنید.
+6. **حذف انتزاع بیهوده**: یک رابط تک‌پیاده‌سازی را که دلیلی برای وجودش نمی‌بینید پیدا کنید و بررسی کنید حذفش چه چیزی را از دست می‌دهد.
+
+## جمع‌بندی
+
+به تصویر ابتدای مقاله برگردیم: SOLID عدسی است برای فکر کردن دربارهٔ وابستگی‌ها، نه سیاههٔ وارسی‌ای که باید در هر کلاس و هر بار اجرا شود. هر یک از پنج اصل دعوتی است به پرسیدن یک پرسش مشخص:
+
+- آیا این ماژول بیش از یک دلیل برای تغییر دارد؟
+- آیا می‌توان رفتار را بدون ویرایش کد موجود اضافه کرد؟
+- آیا زیرنوع قرارداد نوع پایه را نگه می‌دارد؟
+- آیا مصرف‌کننده به چیزی که استفاده نمی‌کند وابسته شده است؟
+- جهت وابستگی به کدام سمت است و انتزاع را چه کسی مالک است؟
+
+این‌ها ابزارهای فکری‌اند، نه دستورهای مکانیکی.
+
+پنج اصل از نظر قدرت عملی یکسان نیستند. به نظر من و بر پایهٔ تجربهٔ مهندسی، SRP و DIP بیشترین وزن را دارند، چون مستقیماً با دو درد گران‌ترین سیستم‌ها سروکار دارند: تمرکز بی‌جای دلیل‌های تغییر، و گره خوردن سیاست به جزئیات. LSP ظریف‌تر است و نقضش بیش از بقیه پنهان می‌ماند، پس تست قرارداد در آن بسیار مفید است. OCP و ISP هم سودمندند، اما آسان‌تر از بقیه بیش از حد اجرا می‌شوند و به انتزاع بی‌مصرف می‌انجامند.
+
+اگر فقط یک چیز از این مقاله به یاد شما بماند، همین باشد: وابستگی‌ها را آگاهانه انتخاب کنید، مرزها را بر پایهٔ سازمان و دامنه‌ای که دارید بکشید، و انتزاع را وقتی بسازید که شواهد واقعی نیازش را نشان داده است، نه از روی عادت.
+
+گام بعدی عملی: یک کلاس در کدبیس فعلی خود انتخاب کنید که بیش از یک دلیل برای تغییر دارد، برایش تست شناسایی بنویسید و شکستن آن را به‌عنوان یک تمرین هفتگی در نظر بگیرید.
+
+## منابع
+
+### منابع اصلی نظری
+
+- رابرت سی. مارتین، *The Single Responsibility Principle* (۲۰۱۴): [blog.cleancoder.com](https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html)
+- باربارا لیسکوف و ژانت وینگ، *A Behavioral Notion of Subtyping* (۱۹۹۴): [ACM Digital Library](https://dl.acm.org/doi/10.1145/197320.197383) و [پیوند DOI](https://doi.org/10.1145/197320.197383)
+- برتراند مه‌یر، *Object-Oriented Software Construction* (۱۹۸۸)، کتاب، برای ریشهٔ اصل باز/بسته و طراحی مبتنی‌بر قرارداد.
+
+### مستندات رسمی فناوری
+
+- مستندات جاوا ۲۱ برای رابط `List` و عملیات اختیاری آن: [docs.oracle.com](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html)
+- مستندات رسمی جاوا دربارهٔ رکوردها: [docs.oracle.com](https://docs.oracle.com/en/java/javase/21/language/records.html)
+
+### راهنماهای عملی و نقدها
+
+- OWASP، *Password Storage Cheat Sheet*: [cheatsheetseries.owasp.org](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
+- الگوی Transactional Outbox: [microservices.io](https://microservices.io/patterns/data/transactional-outbox.html)
+- دن نورث، *CUPID: for joyful coding* (۲۰۲۲): [dannorth.net](https://dannorth.net/2022/02/10/cupid-for-joyful-coding/)
+
+برای مطالعهٔ عمیق‌تر می‌توانید کتاب‌های زیر را هم ببینید: *Agile Software Development: Principles, Patterns, and Practices* از رابرت مارتین، *Object-Oriented Software Construction* از برتراند مه‌یر، *Working Effectively with Legacy Code* از مایکل فدرز و *Refactoring* از مارتین فاولر.
+
+[^solid]: SOLID یک سرواژه (acronym) است که از حرف اول پنج اصل ساخته شده: Single Responsibility، Open/Closed، Liskov Substitution، Interface Segregation و Dependency Inversion. این سرواژه را مایکل فدرز حدود سال ۲۰۰۴ ساخت. واژهٔ solid در انگلیسی به معنای «محکم» و «استوار» است.
+
+[^srp-en]: Single Responsibility Principle، به معنای «اصل مسئولیت یگانه». در فارسی گاهی «اصل تک‌مسئولیتی» هم نوشته می‌شود. کلمهٔ responsibility در این‌جا بیشتر به معنای «دلیل تغییر» است تا «کار».
+
+[^ocp-en]: Open/Closed Principle، به معنای «اصل باز/بسته». یعنی یک موجودیت نرم‌افزاری برای گسترش باز (open for extension) و برای تغییر بسته (closed for modification) باشد.
+
+[^lsp-en]: Liskov Substitution Principle، به معنای «اصل جایگزینی لیسکوف». کلمهٔ substitution یعنی «جایگزینی»؛ به این معنا که یک شیء از زیرنوع بتواند جای شیء از نوع پایه بنشیند.
+
+[^isp-en]: Interface Segregation Principle، به معنای «اصل تفکیک رابط‌ها». کلمهٔ segregation یعنی «جدا کردن» یا «تفکیک».
+
+[^dip-en]: Dependency Inversion Principle، به معنای «اصل وارونگی وابستگی». کلمهٔ inversion یعنی «وارونه کردن» جهت وابستگی. توجه کنید که این با Dependency Injection (تزریق وابستگی) یکی نیست؛ تفاوت‌شان در بخش DIP توضیح داده شده است.
+
+[^uncle-bob]: رابرت سی. مارتین (Robert C. Martin) با لقب «عمو باب» (Uncle Bob) شناخته می‌شود. او مهندس نرم‌افزار، مربی و نویسندهٔ کتاب‌های *Clean Code* و *Clean Architecture* است و از چهره‌های شناخته‌شدهٔ جنبش چابک (agile) به شمار می‌رود.
+
+[^heuristic]: Heuristic به معنای «قاعدهٔ سرانگشتی» یا «راهنمای تجربی» است. چیزی که اغلب جواب می‌دهد ولی تضمین نمی‌شود همیشه درست باشد. این با «قانون» (law) یا «قضیه» (theorem) فرق دارد که همیشه برقرار است.
+
+[^coupling]: Coupling به معنای «همبستگی» یا «پیوستگی بین ماژول‌ها». در فارسی بیشتر همان «کاپلینگ» گفته می‌شود. کاپلینگ بالا یعنی تغییر در یک ماژول احتمالاً ماژول‌های دیگر را هم به هم می‌ریزد.
+
+[^cohesion]: Cohesion به معنای «انسجام» یا «به‌هم‌پیوستگی درونی». یک ماژول منسجم همهٔ اجزایش را برای یک هدف مشخص کنار هم دارد. انسجام بالا و کاپلینگ پایین از اهداف قدیمی طراحی نرم‌افزار است.
+
+[^abstraction]: Abstraction به معنای «انتزاع». یعنی نشان دادن آنچه یک چیز انجام می‌دهد و پنهان کردن اینکه چطور انجام می‌دهد. مثلاً رابط `Shape` می‌گوید مساحت دارد، ولی نمی‌گوید مساحت چطور حساب می‌شود.
+
+[^contract]: Contract به معنای «قرارداد». این مفهوم از طراحی مبتنی‌بر قرارداد (Design by Contract) آمده که برتراند مه‌یر مطرح کرد: هر متد پیش‌شرط، پس‌شرط و ناورداهایی دارد که مصرف‌کننده و پیاده‌ساز هر دو باید رعایتشان کنند.
+
+[^parnas]: دیوید پارناس (David L. Parnas) در مقالهٔ *On the Criteria To Be Used in Decomposing Systems into Modules* (۱۹۷۲) نشان داد که سیستم را نباید بر اساس مراحل پردازش به ماژول‌ها تقسیم کرد، بلکه باید بر اساس تصمیم‌های طراحی که احتمال تغییرشان زیاد است. این ایده که به «پنهان‌سازی اطلاعات» (information hiding) معروف است، پایهٔ نظری بسیاری از اصول بعدی است.
+
+[^feathers]: مایکل فدرز (Michael Feathers) نویسندهٔ کتاب *Working Effectively with Legacy Code* است. او سرواژهٔ SOLID را در حدود سال ۲۰۰۴ برای پنج اصل مارتین پیشنهاد کرد.
+
+[^rigidity]: چهار واژهٔ rigidity (صلبیت)، fragility (شکنندگی)، immobility (بی‌حرکتی) و viscosity (گران‌رویی یا چسبندگی) از مارتین‌اند. مارتین آن‌ها را «بوهای بد طراحی» (design smells) هم می‌نامد.
+
+[^actor]: Actor در این‌جا به معنای «ذی‌نفع» است: فرد، تیم یا نقش سازمانی که خواستهٔ او باعث تغییر نرم‌افزار می‌شود. مثلاً «حسابداری»، «منابع انسانی» یا «تیم امنیت». این واژه را مارتین بعداً در توضیح SRP به کار برد تا مفهوم «دلیل تغییر» روشن‌تر شود.
+
+[^dry]: DRY مخفف Don't Repeat Yourself است، یعنی «خودت را تکرار نکن». این اصل را اندرو هانت و دیو توماس در کتاب *The Pragmatic Programmer* مطرح کردند. منظورشان تکرار «دانش» است، نه صرفاً تکرار متن کد. دو تکه کد شبیه که دلیل تغییرشان متفاوت است، لزوماً تکرار دانش نیستند.
+
+[^polymorphism]: Polymorphism به معنای «چندریختی». توانایی اینکه یک فراخوانی (مثلاً `shape.area()`) بسته به نوع واقعی شیء رفتار متفاوتی داشته باشد، بدون اینکه فراخواننده نوع را بداند.
+
+[^strategy]: Strategy Pattern یا «الگوی استراتژی»: یک خانواده از الگوریتم‌ها را پشت یک رابط مشترک قرار می‌دهیم تا هر کدام را بتوان جداگانه تعویض کرد. این الگو یکی از الگوهای معروف کتاب *Design Patterns* (معروف به «گروه چهار نفره» یا Gang of Four) است.
+
+[^expression-problem]: Expression problem یا «مسئلهٔ بیان». مشکلی که فیلیپ وادلر در سال ۱۹۹۸ نام‌گذاری کرد: چطور می‌شود هم نوع‌های جدید و هم عملیات جدید را بدون تغییر کد موجود و با حفظ ایمنی نوع (type safety) اضافه کرد. در عمل، هر روش یکی از این دو محور را آسان‌تر می‌کند.
+
+[^rule-of-three]: Rule of Three یا «قاعدهٔ سه‌تایی» (که به دان رابرتس نسبت داده می‌شود و مارتین فاولر در کتاب *Refactoring* آن را رواج داد): بار اول کار را انجام بده، بار دوم تکرار را تحمل کن، بار سوم بازآرایی کن. با سه نمونه، شکل درست انتزاع معمولاً روشن‌تر می‌شود.
+
+[^immutability]: Immutability به معنای «تغییرناپذیری». شیئی که بعد از ساخته شدن دیگر تغییر نمی‌کند. در جاوا، فیلدهای رکورد (record) نهایی‌اند، اما رکورد فقط «تغییرناپذیر سطحی» (shallowly immutable) است: اگر یکی از مؤلفه‌ها به شیء قابل‌تغییری مثل `ArrayList` اشاره کند، محتوای آن همچنان می‌تواند عوض شود. برای تغییرناپذیری واقعی باید در سازندهٔ فشرده (compact constructor) یک کپی غیرقابل‌تغییر ساخت، مثل `lines = List.copyOf(lines)`، و تغییرناپذیری عناصر درون آن را هم جداگانه بررسی کرد. این ویژگی بسیاری از خطاهای مربوط به حالت مشترک و ناورداهای شکسته را کم می‌کند.
+
+[^contract-test]: Contract test یا «تست قرارداد»: تستی که رفتار مورد انتظار یک رابط را، مستقل از پیاده‌سازی، می‌سنجد و برای همهٔ پیاده‌سازی‌ها تکرار می‌شود. این روش در عمل ابزار اصلی نگهبانی از LSP است.
+
+[^cqrs]: CQRS مخفف Command Query Responsibility Segregation است، یعنی «تفکیک مسئولیت فرمان و پرس‌وجو». ایدهٔ آن این است که مدل نوشتن (فرمان‌ها که وضعیت را تغییر می‌دهند) و مدل خواندن (پرس‌وجوها که فقط داده برمی‌گردانند) از هم جدا باشند. این الگو را گرگ یانگ مطرح کرد و ریشه در اصل «جدایی فرمان و پرس‌وجو» (CQS) برتراند مه‌یر دارد.
+
+[^di]: Dependency Injection یا «تزریق وابستگی»: روشی که در آن یک شیء وابستگی‌هایش را از بیرون دریافت می‌کند، به جای اینکه خودش بسازد. ساده‌ترین شکلش گرفتن وابستگی از راه سازنده است. چارچوب‌هایی مثل Spring این کار را خودکار می‌کنند و به آن‌ها «ظرف وارونگی کنترل» (IoC container) هم می‌گویند.
+
+[^composition-root]: Composition root یا «ریشهٔ ترکیب»: یک نقطهٔ مشخص در برنامه (معمولاً نزدیک شروع برنامه) که در آن همهٔ اشیاء ساخته و به هم وصل می‌شوند. بقیهٔ برنامه فقط با رابط‌ها کار می‌کند و از ساخته شدن اشیاء بی‌خبر است. این اصطلاح را مارک سیمن در کارهای مربوط به DI مطرح کرد.
+
+[^hexagonal]: Hexagonal Architecture یا «معماری شش‌ضلعی»، که آلیستر کاکبرن آن را با نام «درگاه‌ها و آداپتورها» (Ports and Adapters) معرفی کرد. شش‌ضلعی فقط یک شکل نمادین است؛ ایدهٔ اصلی این است که هستهٔ برنامه با دنیای بیرون (رابط کاربری، پایگاه داده، سرویس‌های دیگر) فقط از راه درگاه‌های انتزاعی تماس دارد. معماری‌های «پیاز» (Onion) و «تمیز» (Clean Architecture) از همین خانواده‌اند.
+
+[^archunit]: ArchUnit یک کتابخانهٔ متن‌باز جاوا است که اجازه می‌دهد قواعد معماری (مثل «بستهٔ domain نباید به بستهٔ adapter وابسته باشد») را به شکل تست واحد بنویسید و در CI اجرا کنید.
+
+[^fitness-function]: Architectural fitness function یا «تابع تناسب معماری»: بررسی خودکاری که نشان می‌دهد یک ویژگی مهم معماری هنوز برقرار است. این اصطلاح از کتاب *Building Evolutionary Architectures* آمده است. مثال‌ها: قاعدهٔ ArchUnit، حد بالای زمان پاسخ، یا حد بالای وابستگی چرخه‌ای میان ماژول‌ها.
+
+[^outbox]: Outbox pattern یا «الگوی صندوق خروجی»: به جای اینکه هم‌زمان در پایگاه داده بنویسیم و پیام به سیستم دیگر بفرستیم (که ممکن است یکی موفق و دیگری ناموفق باشد)، پیام را در یک جدول «صندوق خروجی» در همان تراکنش پایگاه داده می‌نویسیم و فرایند جدایی آن را بعداً می‌فرستد. این الگو خطر ناهماهنگی میان ثبت تغییر در پایگاه داده و ثبت رویداد برای ارسال را کم می‌کند، ولی تضمین انتها‌به‌انتها را خودش نمی‌دهد. فرایند ارسال ممکن است یک پیام را بیش از یک بار منتشر کند (مثلاً بعد از خرابی میان ارسال و ثبت وضعیت آن)، پس مصرف‌کننده باید پیام تکراری را بدون تکرار اثر کسب‌وکاری پردازش کند، یعنی idempotent باشد. توضیح رسمی‌تر در [microservices.io](https://microservices.io/patterns/data/transactional-outbox.html) آمده است.
+
+[^saga]: Saga یا «ساگا»: الگویی برای مدیریت تراکنش‌های طولانی میان چند سرویس. هر مرحله یک عمل محلی انجام می‌دهد و برای هر عمل یک «عمل جبرانی» تعریف می‌شود که اگر مرحلهٔ بعدی شکست خورد، اثر آن را خنثی کند (مثل برگرداندن موجودی انبار وقتی پرداخت شکست خورد).
+
+[^idempotency]: Idempotency به معنای «یکتایی اثر» یا «تکرارپذیری ایمن». عملیاتی که چند بار اجرا شدنش همان اثر یک بار اجرا شدن را دارد. در پرداخت، با فرستادن یک کلید یکتا (مثل شناسهٔ سفارش) تضمین می‌کنیم که تکرار درخواست، پول را دوباره کم نکند.
+
+[^modular-monolith]: Modular monolith یا «مونولیت ماژولار»: برنامه‌ای که به صورت یک واحد استقرار می‌شود ولی ساختار داخلی آن به ماژول‌های مستقل با مرزهای روشن و واسط‌های مشخص تقسیم شده است. مزیتش این است که پیچیدگی عملیاتی سیستم‌های توزیع‌شده را ندارد.
+
+[^refactoring]: Refactoring به معنای «بازآرایی» یا «بازسازی کد»: تغییر ساختار داخلی بدون تغییر رفتار بیرونی. مارتین فاولر در کتاب *Refactoring* فهرستی از بازآرایی‌های استاندارد با نام و روش اجرای مشخص ارائه کرده است.
+
+[^tdd]: TDD مخفف Test-Driven Development یا «توسعهٔ تست‌محور» است. چرخهٔ آن سه گام دارد: یک تست شکست‌خورده بنویس (قرمز)، کمترین کد برای گذراندنش بنویس (سبز)، و کد را بازآرایی کن. کنت بک این روش را رواج داد.
+
+[^test-doubles]: به همهٔ این‌ها در مجموع «جایگزین‌های تست» (test doubles) می‌گویند. تفاوت‌ها: dummy فقط برای پر کردن پارامتر است، stub پاسخ ثابت می‌دهد، spy تماس‌ها را ضبط می‌کند، mock انتظارهای تماس را بررسی می‌کند و fake پیاده‌سازی ساده‌ای است که واقعاً کار می‌کند. این دسته‌بندی را جرارد مزاروس و مارتین فاولر رواج داده‌اند.
+
+[^characterization-test]: Characterization test یا «تست شناسایی»: تستی که رفتار فعلی کد را، هر چه هست، ثبت می‌کند، نه رفتار «درست». هدف این نیست که بگوید کد درست است؛ هدف این است که اگر هنگام بازآرایی رفتار تغییر کرد، متوجه شوید. این اصطلاح از فدرز است.
+
+[^seam]: Seam یا «درز»: نقطه‌ای در کد که می‌توان رفتار را بدون ویرایش در همان نقطه عوض کرد. مثلاً جایی که یک وابستگی به صورت رابط تعریف شده و می‌توان یک پیاده‌سازی دیگر را به جایش گذاشت. فدرز از این مفهوم برای آزمون‌پذیر کردن کد قدیمی استفاده می‌کند.
+
+[^strangler]: Strangler Fig pattern یا «الگوی انجیر خفه‌کننده»، که مارتین فاولر آن را از رفتار درخت انجیر خفه‌کننده در جنگل‌های گرمسیری الهام گرفت: درخت جدید دور درخت قدیمی رشد می‌کند و در نهایت جای آن را می‌گیرد. در نرم‌افزار یعنی قابلیت‌ها را یکی‌یکی به سیستم جدید منتقل می‌کنیم تا سیستم قدیمی دیگر کاری نداشته باشد.
+
+[^adr]: ADR مخفف Architecture Decision Record یا «رکورد تصمیم معماری»: یک سند کوتاه (معمولاً یک صفحه) که یک تصمیم معماری را همراه با زمینه، گزینه‌های بررسی‌شده، تصمیم نهایی و پیامدها ثبت می‌کند. مایکل نایگارد این قالب را رواج داد.
+
+[^yagni]: YAGNI مخفف You Aren't Gonna Need It است، یعنی «به آن نیاز پیدا نخواهی کرد». اصلی از برنامه‌نویسی فرین (XP) که می‌گوید قابلیتی را که امروز لازم نداری نساز، چون احتمالاً هیچ‌وقت لازمش نمی‌شود یا شکلش با آنچه الان فکر می‌کنی فرق دارد.
+
+[^demeter]: Law of Demeter یا «قانون دمتر»: یک شیء باید فقط با دوستان نزدیکش صحبت کند، یعنی با خودش، پارامترهایش، اشیایی که خودش می‌سازد و اجزای مستقیمش. نباید از طریق یک شیء به اجزای داخلی شیء دیگر برسد. نام آن از پروژهٔ Demeter در دانشگاه نورث‌ایسترن آمده است.
+
+[^grasp]: GRASP مخفف General Responsibility Assignment Software Patterns است. مجموعه‌ای از الگوهای تخصیص مسئولیت که کریگ لارمن در کتاب *Applying UML and Patterns* معرفی کرد. شامل مواردی مثل «متخصص اطلاعات» (Information Expert)، «انسجام بالا» و «کاپلینگ پایین».
+
+[^meyer-dbc]: Design by Contract یا «طراحی مبتنی‌بر قرارداد»، روشی که برتراند مه‌یر (Bertrand Meyer) در زبان Eiffel و کتاب *Object-Oriented Software Construction* (۱۹۸۸) معرفی کرد. در این روش هر متد پیش‌شرط، پس‌شرط و ناوردا دارد که مثل یک قرارداد میان مصرف‌کننده و پیاده‌ساز عمل می‌کند. اصل باز/بسته و اصل جایگزینی لیسکوف هر دو از همین نگاه تغذیه می‌کنند.
+
+[^liskov-wing]: مقالهٔ *A Behavioral Notion of Subtyping* (۱۹۹۴) از باربارا لیسکوف (Barbara Liskov) و ژانت وینگ (Jeannette Wing). آن‌ها نشان دادند که زیرنوع بودن فقط به سازگاری امضای متدها محدود نیست و باید رفتار هم سازگار باشد: پیش‌شرط‌ها نباید سخت‌تر و پس‌شرط‌ها نباید سست‌تر شوند. ایدهٔ اصلی پیش‌تر در سخنرانی کلیدی لیسکوف در سال ۱۹۸۷ با عنوان *Data Abstraction and Hierarchy* مطرح شده بود.
+
+[^dan-north]: دن نورث (Dan North) که نام کامل او Daniel Terhorst-North است، خالق توسعهٔ رفتارمحور (BDD) است. او در سال ۲۰۲۱ با نوشته‌ای که عنوانی تحریک‌آمیز داشت، SOLID را به چالش کشید و در ۲۰۲۲ ویژگی‌های CUPID را به عنوان یک عدسی جایگزین ارائه کرد.
