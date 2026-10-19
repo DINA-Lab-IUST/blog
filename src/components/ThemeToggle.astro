@@ -68,7 +68,7 @@
 
   function applyTheme(theme: string) {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
+    localStorage.setItem('dina:theme', theme);
     updateIcons(theme);
   }
 
@@ -97,7 +97,7 @@
 
   // Follow OS preference changes only when the user has no explicit stored preference
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    if (!localStorage.getItem('theme')) {
+    if (!localStorage.getItem('dina:theme')) {
       document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
       updateIcons(e.matches ? 'dark' : 'light');
     }

@@ -33,7 +33,7 @@ test('dark mode preference persists after navigation', async ({ page }) => {
 
   // Set dark mode via localStorage (simulates user toggling to dark)
   await page.evaluate(() => {
-    localStorage.setItem('theme', 'dark');
+    localStorage.setItem('dina:theme', 'dark');
     document.documentElement.setAttribute('data-theme', 'dark');
   });
 
@@ -47,7 +47,7 @@ test('light mode preference persists after navigation', async ({ page }) => {
   await page.goto('/');
 
   await page.evaluate(() => {
-    localStorage.setItem('theme', 'light');
+    localStorage.setItem('dina:theme', 'light');
     document.documentElement.setAttribute('data-theme', 'light');
   });
 

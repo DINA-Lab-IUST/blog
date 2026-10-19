@@ -220,7 +220,7 @@ const personJsonLd = isHome ? JSON.stringify({
     -->
     <script is:inline define:vars={{ defaultTheme: site.theme.default }}>
       function applyTheme() {
-        const stored = localStorage.getItem('theme');
+        const stored = localStorage.getItem('dina:theme');
         let theme;
         if (stored === 'light' || stored === 'dark') {
           theme = stored;
